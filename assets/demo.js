@@ -35,6 +35,16 @@
   var playBtn = root.querySelector('#demo-play');
   var readout = root.querySelector('.demo-readout');
 
+  // Visual only: the last few positions, drawn as fading echoes. The
+  // histogram itself still compares exactly two frames (prevX -> x).
+  var TRAIL_MAX = 4;
+  var trail = [];
+
+  function pushTrail(v) {
+    trail.push(v);
+    while (trail.length > TRAIL_MAX) trail.shift();
+  }
+
   var state = {
     x: 0.35,            // subject centre, 0..1 across the frame
     prevX: 0.30,
@@ -48,11 +58,34 @@
     return Math.min(BINS - 1, Math.floor((m - DEPTH_MIN) / (DEPTH_MAX - DEPTH_MIN) * BINS));
   }
 
-  // Subject size shrinks with distance, as a real camera would see it.
+  // ── perspective ─────────────────────────────────────────────────────
+  // A real pinhole view, so the person stands ON the floor and recedes
+  // correctly instead of floating and merely shrinking.
+  var HORIZON = 0.42;      // eye level, as a fraction of canvas height
+  var CAM_H = 1.4;         // camera height above the floor, metres
+  var PERSON_H = 1.75;
+  var PERSON_W = 0.52;
+  var FOCAL = 0.9;         // in canvas-height units
+
+  function aspect() { return view.width / Math.max(1, view.height); }
+
+  // Vertical screen position (0..1) of a point `up` metres above the floor
+  // at distance `z`.
+  function projY(z, up) {
+    return HORIZON + ((CAM_H - up) / Math.max(0.35, z)) * FOCAL;
+  }
+  // Half-width (0..1 of canvas width) of a `metres`-wide object at distance z.
+  function projHalfW(z, metres) {
+    return (metres / Math.max(0.35, z)) * FOCAL / aspect() / 2;
+  }
+
   function subjectRect(cx, depth) {
-    var scale = 3.0 / Math.max(0.5, depth);
-    var w = 0.14 * scale, h = 0.55 * scale;
-    return { x0: cx - w / 2, x1: cx + w / 2, y0: 0.5 - h / 2, y1: 0.5 + h / 2 };
+    var hw = projHalfW(depth, PERSON_W);
+    return {
+      x0: cx - hw, x1: cx + hw,
+      y0: projY(depth, PERSON_H),   // head
+      y1: projY(depth, 0)           // feet, on the floor
+    };
   }
 
   function inRect(r, u, v) {
@@ -119,44 +152,171 @@
     }
   }
 
+  /* ── scene rendering ──────────────────────────────────────────────
+     A room drawn in the same perspective the histogram is computed in:
+     floor grid, back wall, depth haze, and a silhouette standing on the
+     floor. The orange echoes are the positions just vacated — the thing
+     the signature picks up as a second band. */
+
+  function personPath(c, r) {
+    var w = (r.x1 - r.x0) * view.width;
+    var x = r.x0 * view.width;
+    var top = r.y0 * view.height;
+    var bottom = r.y1 * view.height;
+    var h = bottom - top;
+    if (h < 4 || w < 2) return;
+
+    var headR = Math.min(w * 0.42, h * 0.11);
+    var cxp = x + w / 2;
+    var shoulder = top + headR * 2.25;
+
+    c.beginPath();
+    c.arc(cxp, top + headR, headR, 0, Math.PI * 2);          // head
+    c.closePath();
+    c.fill();
+
+    c.beginPath();                                            // torso + legs
+    c.moveTo(cxp - w * 0.5, shoulder + h * 0.06);
+    c.quadraticCurveTo(cxp - w * 0.46, shoulder - h * 0.03, cxp - w * 0.24, shoulder - h * 0.02);
+    c.lineTo(cxp + w * 0.24, shoulder - h * 0.02);
+    c.quadraticCurveTo(cxp + w * 0.46, shoulder - h * 0.03, cxp + w * 0.5, shoulder + h * 0.06);
+    c.lineTo(cxp + w * 0.34, bottom);
+    c.lineTo(cxp + w * 0.07, bottom);
+    c.lineTo(cxp + w * 0.05, top + h * 0.62);
+    c.lineTo(cxp - w * 0.05, top + h * 0.62);
+    c.lineTo(cxp - w * 0.07, bottom);
+    c.lineTo(cxp - w * 0.34, bottom);
+    c.closePath();
+    c.fill();
+  }
+
+  function groundShadow(c, r, alpha) {
+    var cxp = (r.x0 + r.x1) / 2 * view.width;
+    var y = r.y1 * view.height;
+    var rx = (r.x1 - r.x0) * view.width * 0.78;
+    if (rx < 1 || y > view.height + 40) return;
+    var g = c.createRadialGradient(cxp, y, 0, cxp, y, rx);
+    g.addColorStop(0, 'rgba(0,0,0,' + (0.5 * alpha).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g;
+    c.save();
+    c.translate(cxp, y);
+    c.scale(1, 0.22);
+    c.beginPath();
+    c.arc(0, 0, rx, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+  }
+
+  function drawRoom() {
+    var w = view.width, h = view.height;
+    var hy = HORIZON * h;
+
+    // Ceiling / upper air
+    var sky = ctx.createLinearGradient(0, 0, 0, hy);
+    sky.addColorStop(0, '#0c1015');
+    sky.addColorStop(1, '#151b23');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, hy);
+
+    // Floor
+    var floor = ctx.createLinearGradient(0, hy, 0, h);
+    floor.addColorStop(0, '#161d26');
+    floor.addColorStop(1, '#0c1116');
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, hy, w, h - hy);
+
+    // Floor grid: depth lines every metre, lateral lines converging on the
+    // vanishing point. This is what makes distance legible at a glance.
+    ctx.lineWidth = 1;
+    for (var z = 1; z <= 9; z++) {
+      var y = projY(z, 0) * h;
+      if (y < hy || y > h) continue;
+      var fade = 0.26 * (1 - z / 10);
+      ctx.strokeStyle = 'rgba(94,230,192,' + fade.toFixed(3) + ')';
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    for (var lx = -6; lx <= 6; lx++) {
+      var near = 0.5 + (lx * 0.9) / 1.2 * FOCAL / aspect() / 2 * 2;
+      var far = 0.5 + (lx * 0.9) / 9 * FOCAL / aspect() / 2 * 2;
+      ctx.strokeStyle = 'rgba(94,230,192,0.055)';
+      ctx.beginPath();
+      ctx.moveTo(near * w, projY(1.2, 0) * h);
+      ctx.lineTo(far * w, projY(9, 0) * h);
+      ctx.stroke();
+    }
+
+    // Horizon / wall base
+    ctx.strokeStyle = 'rgba(94,230,192,0.16)';
+    ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(w, hy); ctx.stroke();
+
+    // Distance haze, so far things read as far
+    var haze = ctx.createLinearGradient(0, hy - h * 0.12, 0, hy + h * 0.18);
+    haze.addColorStop(0, 'rgba(14,17,22,0)');
+    haze.addColorStop(0.5, 'rgba(14,17,22,0.55)');
+    haze.addColorStop(1, 'rgba(14,17,22,0)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, hy - h * 0.12, w, h * 0.3);
+  }
+
+  function vignette() {
+    var w = view.width, h = view.height;
+    var g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.28,
+                                     w / 2, h / 2, Math.max(w, h) * 0.72);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+
   function drawScene() {
     var w = view.width, h = view.height;
+    ctx.clearRect(0, 0, w, h);
+    drawRoom();
+
+    // Wall marker at the far plane the signature reports.
+    var wallY = projY(WALL_M, 0) * h;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = 'rgba(139,148,158,0.32)';
+    ctx.beginPath(); ctx.moveTo(0, wallY); ctx.lineTo(w, wallY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Echo trail: where the person just was. These vacated pixels are what
+    // produce the second band in the signature.
+    for (var i = trail.length - 1; i >= 0; i--) {
+      var a = (1 - (trail.length - i) / (trail.length + 1)) * 0.34;
+      var er = subjectRect(trail[i], state.depth);
+      groundShadow(ctx, er, a * 0.5);
+      ctx.fillStyle = 'rgba(255,176,92,' + a.toFixed(3) + ')';
+      personPath(ctx, er);
+    }
+
     var curr = subjectRect(state.x, state.depth);
-    var prev = subjectRect(state.prevX, state.depth);
+    groundShadow(ctx, curr, 1);
 
-    // Wall: darker with distance, so the scene reads as a room.
-    ctx.fillStyle = '#11161d';
-    ctx.fillRect(0, 0, w, h);
-
-    // Floor line for a sense of depth.
-    ctx.strokeStyle = '#1e2732';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.82);
-    ctx.lineTo(w, h * 0.82);
-    ctx.stroke();
-
-    // Ghost of the previous position — the vacated region.
-    ctx.fillStyle = 'rgba(255, 176, 92, 0.16)';
-    ctx.fillRect(prev.x0 * w, prev.y0 * h, (prev.x1 - prev.x0) * w, (prev.y1 - prev.y0) * h);
-
-    // The subject now.
+    // Nearer reads brighter; distance desaturates toward the haze.
     var near = 1 - Math.min(1, (state.depth - 0.5) / 7);
-    ctx.fillStyle = 'rgba(94, 230, 192, ' + (0.35 + 0.5 * near).toFixed(3) + ')';
-    ctx.fillRect(curr.x0 * w, curr.y0 * h, (curr.x1 - curr.x0) * w, (curr.y1 - curr.y0) * h);
+    ctx.save();
+    ctx.shadowColor = 'rgba(94,230,192,0.5)';
+    ctx.shadowBlur = 18 * near + 6;
+    ctx.fillStyle = 'rgba(' + Math.round(130 + 40 * near) + ',' +
+                    Math.round(226 + 12 * near) + ',' +
+                    Math.round(200 + 20 * near) + ',' + (0.72 + 0.26 * near).toFixed(3) + ')';
+    personPath(ctx, curr);
+    ctx.restore();
 
-    ctx.strokeStyle = '#5ee6c0';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(curr.x0 * w, curr.y0 * h, (curr.x1 - curr.x0) * w, (curr.y1 - curr.y0) * h);
+    vignette();
 
-    // Labels.
-    ctx.fillStyle = '#8b949e';
+    // Labels
     ctx.font = '11px ui-monospace, monospace';
+    ctx.fillStyle = 'rgba(139,148,158,0.9)';
     ctx.fillText('wall — ' + WALL_M.toFixed(1) + ' m away', 10, 18);
     ctx.fillStyle = '#5ee6c0';
     ctx.fillText('person — ' + state.depth.toFixed(1) + ' m away', 10, 34);
-    ctx.fillStyle = 'rgba(255, 176, 92, 0.85)';
-    ctx.fillText('the space they just left', 10, h - 12);
+    if (trail.length) {
+      ctx.fillStyle = 'rgba(255, 176, 92, 0.9)';
+      ctx.fillText('the space they just left', 10, h - 12);
+    }
   }
 
   function step() {
@@ -167,6 +327,7 @@
   function advance() {
     if (!state.playing || state.dragging) return;
     state.prevX = state.x;
+    pushTrail(state.x);
     state.x += 0.018 * state.dir;
     if (state.x > 0.78) { state.x = 0.78; state.dir = -1; }
     if (state.x < 0.22) { state.x = 0.22; state.dir = 1; }
@@ -184,6 +345,7 @@
     // throw (NotFoundError) and must never take the update down with it.
     state.dragging = true;
     state.prevX = state.x;
+    pushTrail(state.x);
     state.x = pointerX(e);
     step();
     try { view.setPointerCapture(e.pointerId); } catch (err) { /* capture optional */ }
@@ -194,6 +356,7 @@
     var nx = pointerX(e);
     if (Math.abs(nx - state.x) < 0.002) return;
     state.prevX = state.x;
+    pushTrail(state.x);
     state.x = nx;
     step();
   });
@@ -213,6 +376,7 @@
   });
 
   playBtn.addEventListener('click', function () {
+    if (state.playing) { trail.length = 0; step(); }   // settle when paused
     state.playing = !state.playing;
     playBtn.textContent = state.playing ? 'Pause' : 'Play';
     playBtn.setAttribute('aria-pressed', String(state.playing));
@@ -300,6 +464,7 @@
   var hasHover = window.matchMedia('(hover: hover)').matches;
 
   var state = { sx: 0.5, sz: 3.2, baseline: 0.06, noise: 0.01, calib: false, dragging: false };
+  var dashPhase = 0;   // marching-ants offset for the measurement rays
 
   function toPx(x, z) {
     return {
@@ -370,89 +535,185 @@
     ctx.textAlign = 'left';
   }
 
-  function drawCamera(x, label, active) {
+  function drawCamera(x, active) {
     var p = toPx(x, 0.12);
-    ctx.fillStyle = active ? '#5ee6c0' : '#55636f';
+    var col = active ? '#5ee6c0' : '#55636f';
+
+    // Field of view, fading with distance rather than a flat wash.
+    var apex = { x: p.px, y: p.py };
+    var spread = Math.tan(HFOV / 2) * Z_MAX;
+    var l = toPx(x - spread, Z_MAX), rr = toPx(x + spread, Z_MAX);
+    var g = ctx.createLinearGradient(apex.x, apex.y, apex.x, l.py);
+    g.addColorStop(0, active ? 'rgba(94,230,192,0.16)' : 'rgba(120,132,145,0.08)');
+    g.addColorStop(0.55, active ? 'rgba(94,230,192,0.05)' : 'rgba(120,132,145,0.03)');
+    g.addColorStop(1, 'rgba(94,230,192,0)');
+    ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(p.px, p.py);
-    ctx.lineTo(p.px - 9, p.py + 13);
-    ctx.lineTo(p.px + 9, p.py + 13);
+    ctx.moveTo(apex.x, apex.y);
+    ctx.lineTo(rr.px, rr.py);
+    ctx.lineTo(l.px, l.py);
     ctx.closePath();
     ctx.fill();
 
-    // Field of view
-    var far = toPx(x + Math.tan(HFOV / 2) * Z_MAX, Z_MAX);
-    var far2 = toPx(x - Math.tan(HFOV / 2) * Z_MAX, Z_MAX);
-    ctx.fillStyle = active ? 'rgba(94,230,192,0.05)' : 'rgba(120,130,140,0.04)';
+    // Cone edges
+    ctx.strokeStyle = active ? 'rgba(94,230,192,0.22)' : 'rgba(120,132,145,0.14)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(p.px, p.py);
-    ctx.lineTo(far.px, far.py);
-    ctx.lineTo(far2.px, far2.py);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(l.px, l.py); ctx.lineTo(apex.x, apex.y); ctx.lineTo(rr.px, rr.py);
+    ctx.stroke();
 
+    // Camera body: a small block with a lens, rather than a bare triangle.
+    ctx.save();
+    ctx.translate(p.px, p.py);
+    ctx.shadowColor = active ? 'rgba(94,230,192,0.55)' : 'transparent';
+    ctx.shadowBlur = active ? 10 : 0;
+    ctx.fillStyle = col;
+    roundRect(ctx, -9, 2, 18, 12, 3);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0b0f14';
+    ctx.beginPath(); ctx.arc(0, 8, 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(0, 8, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();                      // lens hood, pointing up-range
+    ctx.moveTo(-5, 2); ctx.lineTo(5, 2); ctx.lineTo(0, -5);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function drawFloor() {
+    var w = view.width, h = view.height;
+
+    var bg = ctx.createLinearGradient(0, h, 0, 0);
+    bg.addColorStop(0, '#121821');
+    bg.addColorStop(1, '#0b0e13');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Distance arcs centred between the cameras: distance from the rig, not
+    // a flat y coordinate, which is what the matcher actually reasons about.
+    var o = toPx(state.baseline / 2, 0.12);
+    ctx.lineWidth = 1;
+    for (var z = 1; z <= 6; z++) {
+      var edge = toPx(state.baseline / 2, z);
+      var rad = Math.abs(o.py - edge.py);
+      ctx.strokeStyle = 'rgba(94,230,192,' + (0.13 * (1 - z / 8)).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(o.px, o.py, rad, Math.PI, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(110,125,140,0.5)';
+      ctx.font = '9px ui-monospace, monospace';
+      ctx.fillText(z + ' m', 7, edge.py - 4);
+    }
   }
 
   function draw(r) {
     var w = view.width, h = view.height;
-    ctx.fillStyle = '#0e1116';
-    ctx.fillRect(0, 0, w, h);
+    ctx.clearRect(0, 0, w, h);
+    drawFloor();
 
-    // Depth gridlines every metre.
-    ctx.strokeStyle = '#1a212a';
-    ctx.fillStyle = '#4a5764';
-    ctx.font = '9px ui-monospace, monospace';
-    ctx.lineWidth = 1;
-    for (var z = 1; z <= 6; z++) {
-      var y = toPx(0, z).py;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-      ctx.fillText(z + ' m', 6, y - 4);
-    }
-
-    drawCamera(r.cam1X, 'cam 1', r.v1);
-    drawCamera(r.cam2X, 'cam 2', r.v2);
+    drawCamera(r.cam1X, r.v1);
+    drawCamera(r.cam2X, r.v2);
     drawCameraLabels(r.cam1X, r.cam2X, r.v1, r.v2);
 
-    // Rays from each camera to the point it believes it sees.
-    function ray(camX, p, colour) {
-      var a = toPx(camX, 0.12), b = toPx(camX + p.x, p.z);
+    // Two different things are drawn here, and keeping them apart is the
+    // whole point:
+    //   1. the SIGHTLINES — where each camera physically sees the person.
+    //      Both are correct; both point at the same spot.
+    //   2. the READINGS — where each camera's measurement lands once the
+    //      matcher treats both as if they shared one coordinate frame.
+    //      Without calibration, camera 2's lands a baseline away from
+    //      camera 1's, which is the disagreement the number reports.
+    var personPt = toPx(state.sx, state.sz);
+
+    function sightline(camX, colour, active) {
+      if (!active) return;
+      var a = toPx(camX, 0.12);
+      ctx.save();
       ctx.strokeStyle = colour;
-      ctx.setLineDash([3, 3]);
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(b.px, b.py); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = colour;
-      ctx.beginPath(); ctx.arc(b.px, b.py, 4, 0, Math.PI * 2); ctx.fill();
-      return b;
+      ctx.lineWidth = 1.3;
+      ctx.setLineDash([5, 4]);
+      ctx.lineDashOffset = -dashPhase;
+      ctx.beginPath();
+      ctx.moveTo(a.px, a.py);
+      ctx.lineTo(personPt.px, personPt.py);
+      ctx.stroke();
+      ctx.restore();
     }
+    sightline(r.cam1X, 'rgba(94,230,192,0.65)', r.v1);
+    sightline(r.cam2X, 'rgba(255,176,92,0.65)', r.v2);
 
-    var e1 = r.v1 ? ray(r.cam1X, r.p1, '#5ee6c0') : null;
-    var e2 = r.v2 ? ray(r.cam2X, r.p2, '#ffb05c') : null;
+    if (r.v1 && r.v2) {
+      var e1 = toPx(r.p1.x, r.p1.z);          // camera 1's reading
+      var e2 = toPx(r.q2.x, r.q2.z);          // camera 2's, as the matcher reads it
+      var ok = r.dist < MATCH_THRESHOLD;
+      var col = ok ? '#5ee6c0' : '#ff6b6b';
 
-    // The gap the matcher actually measures.
-    if (e1 && e2) {
-      var g2 = r.calib ? toPx(r.cam1X + r.q2.x, r.q2.z) : e2;
-      if (r.calib) {
-        ctx.fillStyle = 'rgba(255,176,92,0.55)';
-        ctx.beginPath(); ctx.arc(g2.px, g2.py, 4, 0, Math.PI * 2); ctx.fill();
+      if (!ok) {
+        ctx.save();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2.2;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.moveTo(e1.px, e1.py); ctx.lineTo(e2.px, e2.py); ctx.stroke();
+        ctx.restore();
       }
-      ctx.strokeStyle = r.dist < MATCH_THRESHOLD ? '#5ee6c0' : '#ff6b6b';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(e1.px, e1.py); ctx.lineTo(g2.px, g2.py); ctx.stroke();
+
+      function readingDot(pt, colour) {
+        ctx.save();
+        ctx.shadowColor = colour;
+        ctx.shadowBlur = 9;
+        ctx.fillStyle = colour;
+        ctx.beginPath(); ctx.arc(pt.px, pt.py, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      readingDot(e1, '#5ee6c0');
+      readingDot(e2, '#ffb05c');
+
+      if (!ok) {
+        var mx = (e1.px + e2.px) / 2, my = (e1.py + e2.py) / 2;
+        var label = human(r.dist) + ' apart';
+        ctx.font = '10px ui-monospace, monospace';
+        var tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(11,15,20,0.88)';
+        roundRect(ctx, mx - tw / 2 - 6, my - 22, tw + 12, 15, 4);
+        ctx.fill();
+        ctx.fillStyle = col;
+        ctx.textAlign = 'center';
+        ctx.fillText(label, mx, my - 11);
+        ctx.textAlign = 'left';
+      }
     }
 
-    // The subject itself.
-    var s = toPx(state.sx, state.sz);
-    ctx.strokeStyle = '#e7edf4';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(s.px, s.py, 9, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = '#8b949e';
-    ctx.font = '10px ui-monospace, monospace';
-    ctx.fillText('person', s.px + 13, s.py + 3);
+    // The person: a soft presence, not a wireframe circle.
+    var sp = toPx(state.sx, state.sz);
+    var glow = ctx.createRadialGradient(sp.px, sp.py, 0, sp.px, sp.py, 22);
+    glow.addColorStop(0, 'rgba(231,237,244,0.30)');
+    glow.addColorStop(1, 'rgba(231,237,244,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(sp.px, sp.py, 22, 0, Math.PI * 2); ctx.fill();
 
-    // On touch the page owns vertical gestures, so say that tapping works.
+    ctx.fillStyle = '#e7edf4';
+    ctx.beginPath(); ctx.arc(sp.px, sp.py, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(231,237,244,0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(sp.px, sp.py, 10, 0, Math.PI * 2); ctx.stroke();
+
+    ctx.fillStyle = 'rgba(231,237,244,0.85)';
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.fillText('person', sp.px + 15, sp.py + 3);
+
     if (!hasHover) {
-      // Right-aligned: the depth gridline labels occupy the left edge.
       ctx.fillStyle = 'rgba(139,148,158,0.75)';
       ctx.font = '10px ui-monospace, monospace';
       ctx.textAlign = 'right';
@@ -543,5 +804,28 @@
     render();
   }
   window.addEventListener('resize', resize);
+
+  // The rays march slowly so the plan reads as live measurement rather than a
+  // diagram. Only while the section is on screen, and never under
+  // prefers-reduced-motion.
+  var stillness = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var onScreen = true;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) {
+      onScreen = entries[0].isIntersecting;
+    }, { threshold: 0.05 }).observe(root);
+  }
+
+  var lastTick = 0;
+  function tick(now) {
+    if (!stillness && onScreen && now - lastTick > 34) {
+      dashPhase = (dashPhase + 0.6) % 9;
+      lastTick = now;
+      render();
+    }
+    requestAnimationFrame(tick);
+  }
+
   resize();
+  requestAnimationFrame(tick);
 })();
