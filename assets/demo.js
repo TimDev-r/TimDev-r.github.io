@@ -175,11 +175,13 @@
   }
 
   view.addEventListener('pointerdown', function (e) {
+    // Apply the interaction BEFORE requesting capture: setPointerCapture can
+    // throw (NotFoundError) and must never take the update down with it.
     state.dragging = true;
-    view.setPointerCapture(e.pointerId);
     state.prevX = state.x;
     state.x = pointerX(e);
     step();
+    try { view.setPointerCapture(e.pointerId); } catch (err) { /* capture optional */ }
   });
 
   view.addEventListener('pointermove', function (e) {
@@ -290,6 +292,8 @@
   // under the z = 0 line instead of being clipped by the canvas edge.
   var X_MIN = -1.6, X_MAX = 2.6, Z_MIN = -0.8, Z_MAX = 6.5;
 
+  var hasHover = window.matchMedia('(hover: hover)').matches;
+
   var state = { sx: 0.5, sz: 3.2, baseline: 0.06, noise: 0.01, calib: false, dragging: false };
 
   function toPx(x, z) {
@@ -340,6 +344,27 @@
     };
   }
 
+  function drawCameraLabels(x1, x2, a1, a2) {
+    var p1x = toPx(x1, 0.12).px, p2x = toPx(x2, 0.12).px;
+    var y = toPx(0, 0.12).py + 26;
+    ctx.font = '10px ui-monospace, monospace';
+    // At a small baseline the two cameras are only a few pixels apart, so two
+    // labels overprint into unreadable mush. Merge them instead.
+    if (Math.abs(p2x - p1x) < 46) {
+      ctx.fillStyle = (a1 || a2) ? '#5ee6c0' : '#6f7d8c';
+      ctx.textAlign = 'center';
+      ctx.fillText('cam 1 + 2', (p1x + p2x) / 2, y);
+      ctx.textAlign = 'left';
+      return;
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = a1 ? '#5ee6c0' : '#6f7d8c';
+    ctx.fillText('cam 1', p1x, y);
+    ctx.fillStyle = a2 ? '#5ee6c0' : '#6f7d8c';
+    ctx.fillText('cam 2', p2x, y);
+    ctx.textAlign = 'left';
+  }
+
   function drawCamera(x, label, active) {
     var p = toPx(x, 0.12);
     ctx.fillStyle = active ? '#5ee6c0' : '#55636f';
@@ -361,9 +386,6 @@
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = active ? '#5ee6c0' : '#6f7d8c';
-    ctx.font = '10px ui-monospace, monospace';
-    ctx.fillText(label, p.px - 10, p.py + 26);
   }
 
   function draw(r) {
@@ -384,6 +406,7 @@
 
     drawCamera(r.cam1X, 'cam 1', r.v1);
     drawCamera(r.cam2X, 'cam 2', r.v2);
+    drawCameraLabels(r.cam1X, r.cam2X, r.v1, r.v2);
 
     // Rays from each camera to the point it believes it sees.
     function ray(camX, p, colour) {
@@ -421,6 +444,16 @@
     ctx.fillStyle = '#8b949e';
     ctx.font = '10px ui-monospace, monospace';
     ctx.fillText('subject', s.px + 13, s.py + 3);
+
+    // On touch the page owns vertical gestures, so say that tapping works.
+    if (!hasHover) {
+      // Right-aligned: the depth gridline labels occupy the left edge.
+      ctx.fillStyle = 'rgba(139,148,158,0.75)';
+      ctx.font = '10px ui-monospace, monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('tap to move the subject', view.width - 10, 16);
+      ctx.textAlign = 'left';
+    }
   }
 
   function fmt(p) { return '(' + p.x.toFixed(3) + ', ' + p.z.toFixed(3) + ') m'; }
@@ -458,9 +491,13 @@
   }
 
   view.addEventListener('pointerdown', function (e) {
+    // Tap-to-place is the primary touch interaction: on a phone `touch-action:
+    // pan-y` hands vertical gestures to the page scroller, so the subject
+    // cannot be dragged toward/away — a single tap sets both x and z at once.
+    // Apply it before requesting capture, which can throw.
     state.dragging = true;
-    view.setPointerCapture(e.pointerId);
     setFromPointer(e);
+    try { view.setPointerCapture(e.pointerId); } catch (err) { /* capture optional */ }
   });
   view.addEventListener('pointermove', function (e) {
     if (state.dragging) setFromPointer(e);

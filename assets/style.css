@@ -527,7 +527,9 @@ a { color: inherit; }
   align-items: stretch;
   gap: 1px;
   font-family: var(--mono);
-  font-size: clamp(.4rem, 1.05vw, .74rem);
+  /* Sized so a monospace advance (~0.6em) stays inside one 1fr cell:
+     cell = (viewport - ~104px chrome) / 128. Above that the glyphs clip. */
+  font-size: clamp(.4rem, 1.0vw, .62rem);
   line-height: 1.4;
   background: var(--bg-2);
   border: 1px solid var(--line-soft);
@@ -541,8 +543,9 @@ a { color: inherit; }
   border-radius: 1px;
 }
 
-/* Too narrow for glyphs: drop the characters and read it as a barcode. */
-@media (max-width: 680px) {
+/* Too narrow for legible glyphs: drop the characters and read it as a barcode.
+   Below ~900px a 128-cell strip gives each character under 6px of width. */
+@media (max-width: 900px) {
   .demo-sig {
     gap: 1px;
     padding: 10px 8px;
@@ -702,4 +705,18 @@ a { color: inherit; }
 @media (max-width: 560px) {
   .stereo-view { height: 260px; }
   .stereo-row { font-size: .68rem; }
+
+  /* Narrow screens: lay each control out as label | slider | value on one
+     row, instead of letting the value wrap onto a line of its own. */
+  .demo-controls {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 9px 10px;
+    align-items: center;
+    margin: 14px 0 4px;
+  }
+  .demo-controls input[type="range"] { min-width: 0; flex: none; width: 100%; }
+  .demo-controls output { min-width: 0; text-align: right; }
+  .demo-controls button,
+  .demo-check { grid-column: 1 / -1; justify-self: start; }
 }
