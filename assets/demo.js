@@ -208,55 +208,67 @@
     c.restore();
   }
 
+  /* The room. The BACK WALL is the reason this demo has two bands: when the
+     person steps sideways they uncover the wall behind them, and the wall is
+     at a different distance from the camera than they are. Drawing it makes
+     that readable instead of asserted. */
+  var WALL_TOP_M = 2.8;   // ceiling height
+
   function drawRoom() {
     var w = view.width, h = view.height;
-    var hy = HORIZON * h;
+    var wallBase = projY(WALL_M, 0) * h;        // where wall meets floor
+    var wallTop = projY(WALL_M, WALL_TOP_M) * h; // where wall meets ceiling
 
-    // Ceiling / upper air
-    var sky = ctx.createLinearGradient(0, 0, 0, hy);
-    sky.addColorStop(0, '#0c1015');
-    sky.addColorStop(1, '#151b23');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, w, hy);
+    // Ceiling
+    var ceil = ctx.createLinearGradient(0, 0, 0, wallTop);
+    ceil.addColorStop(0, '#090c10');
+    ceil.addColorStop(1, '#12181f');
+    ctx.fillStyle = ceil;
+    ctx.fillRect(0, 0, w, wallTop);
 
-    // Floor
-    var floor = ctx.createLinearGradient(0, hy, 0, h);
-    floor.addColorStop(0, '#161d26');
-    floor.addColorStop(1, '#0c1116');
-    ctx.fillStyle = floor;
-    ctx.fillRect(0, hy, w, h - hy);
+    // Back wall — a real surface, lit from the camera side.
+    var wall = ctx.createLinearGradient(0, wallTop, 0, wallBase);
+    wall.addColorStop(0, '#1b232d');
+    wall.addColorStop(1, '#232d3a');
+    ctx.fillStyle = wall;
+    ctx.fillRect(0, wallTop, w, wallBase - wallTop);
 
-    // Floor grid: depth lines every metre, lateral lines converging on the
-    // vanishing point. This is what makes distance legible at a glance.
+    // A faint horizontal band across the wall so it reads as a plane rather
+    // than flat fill, and a brighter line where it meets the floor.
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
     ctx.lineWidth = 1;
-    for (var z = 1; z <= 9; z++) {
+    for (var b = 1; b < 4; b++) {
+      var by = wallTop + (wallBase - wallTop) * (b / 4);
+      ctx.beginPath(); ctx.moveTo(0, by); ctx.lineTo(w, by); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(148,163,184,0.28)';
+    ctx.beginPath(); ctx.moveTo(0, wallBase); ctx.lineTo(w, wallBase); ctx.stroke();
+
+    // Floor, from the wall forward to the camera
+    var floor = ctx.createLinearGradient(0, wallBase, 0, h);
+    floor.addColorStop(0, '#141a22');
+    floor.addColorStop(1, '#0b0f14');
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, wallBase, w, h - wallBase);
+
+    // Depth lines on the floor, every metre up to the wall.
+    for (var z = 1; z < WALL_M; z++) {
       var y = projY(z, 0) * h;
-      if (y < hy || y > h) continue;
-      var fade = 0.26 * (1 - z / 10);
-      ctx.strokeStyle = 'rgba(94,230,192,' + fade.toFixed(3) + ')';
+      if (y <= wallBase || y > h) continue;
+      ctx.strokeStyle = 'rgba(94,230,192,' + (0.24 * (1 - z / (WALL_M + 2))).toFixed(3) + ')';
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
     }
-    for (var lx = -6; lx <= 6; lx++) {
-      var near = 0.5 + (lx * 0.9) / 1.2 * FOCAL / aspect() / 2 * 2;
-      var far = 0.5 + (lx * 0.9) / 9 * FOCAL / aspect() / 2 * 2;
-      ctx.strokeStyle = 'rgba(94,230,192,0.055)';
+
+    // Converging lateral lines, to sell the perspective.
+    for (var lx = -5; lx <= 5; lx++) {
+      var nearX = (0.5 + projHalfW(1.1, lx * 1.8) * 2) * w;
+      var farX = (0.5 + projHalfW(WALL_M, lx * 1.8) * 2) * w;
+      ctx.strokeStyle = 'rgba(94,230,192,0.05)';
       ctx.beginPath();
-      ctx.moveTo(near * w, projY(1.2, 0) * h);
-      ctx.lineTo(far * w, projY(9, 0) * h);
+      ctx.moveTo(nearX, h);
+      ctx.lineTo(farX, wallBase);
       ctx.stroke();
     }
-
-    // Horizon / wall base
-    ctx.strokeStyle = 'rgba(94,230,192,0.16)';
-    ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(w, hy); ctx.stroke();
-
-    // Distance haze, so far things read as far
-    var haze = ctx.createLinearGradient(0, hy - h * 0.12, 0, hy + h * 0.18);
-    haze.addColorStop(0, 'rgba(14,17,22,0)');
-    haze.addColorStop(0.5, 'rgba(14,17,22,0.55)');
-    haze.addColorStop(1, 'rgba(14,17,22,0)');
-    ctx.fillStyle = haze;
-    ctx.fillRect(0, hy - h * 0.12, w, h * 0.3);
   }
 
   function vignette() {
@@ -273,13 +285,6 @@
     var w = view.width, h = view.height;
     ctx.clearRect(0, 0, w, h);
     drawRoom();
-
-    // Wall marker at the far plane the signature reports.
-    var wallY = projY(WALL_M, 0) * h;
-    ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = 'rgba(139,148,158,0.32)';
-    ctx.beginPath(); ctx.moveTo(0, wallY); ctx.lineTo(w, wallY); ctx.stroke();
-    ctx.setLineDash([]);
 
     // Echo trail: where the person just was. These vacated pixels are what
     // produce the second band in the signature.
@@ -307,15 +312,20 @@
 
     vignette();
 
-    // Labels
+    // Labels, placed on the surfaces they name.
     ctx.font = '11px ui-monospace, monospace';
-    ctx.fillStyle = 'rgba(139,148,158,0.9)';
-    ctx.fillText('wall — ' + WALL_M.toFixed(1) + ' m away', 10, 18);
+    var wallMid = (projY(WALL_M, WALL_TOP_M) + projY(WALL_M, 0)) / 2 * h;
+    // Kept short: on a 300px canvas the long form ran under the figure, and
+    // the readout below the strip already says "from the camera".
+    ctx.fillStyle = 'rgba(168,182,198,0.9)';
+    ctx.fillText('back wall — ' + WALL_M.toFixed(1) + ' m', 12, wallMid);
+
     ctx.fillStyle = '#5ee6c0';
-    ctx.fillText('person — ' + state.depth.toFixed(1) + ' m away', 10, 34);
+    ctx.fillText('person — ' + state.depth.toFixed(1) + ' m', 12, 20);
+
     if (trail.length) {
-      ctx.fillStyle = 'rgba(255, 176, 92, 0.9)';
-      ctx.fillText('the space they just left', 10, h - 12);
+      ctx.fillStyle = 'rgba(255, 176, 92, 0.95)';
+      ctx.fillText('wall they just uncovered', 12, h - 12);
     }
   }
 
@@ -544,8 +554,8 @@
     var spread = Math.tan(HFOV / 2) * Z_MAX;
     var l = toPx(x - spread, Z_MAX), rr = toPx(x + spread, Z_MAX);
     var g = ctx.createLinearGradient(apex.x, apex.y, apex.x, l.py);
-    g.addColorStop(0, active ? 'rgba(94,230,192,0.16)' : 'rgba(120,132,145,0.08)');
-    g.addColorStop(0.55, active ? 'rgba(94,230,192,0.05)' : 'rgba(120,132,145,0.03)');
+    g.addColorStop(0, active ? 'rgba(94,230,192,0.10)' : 'rgba(120,132,145,0.05)');
+    g.addColorStop(0.55, active ? 'rgba(94,230,192,0.028)' : 'rgba(120,132,145,0.018)');
     g.addColorStop(1, 'rgba(94,230,192,0)');
     ctx.fillStyle = g;
     ctx.beginPath();
@@ -556,7 +566,7 @@
     ctx.fill();
 
     // Cone edges
-    ctx.strokeStyle = active ? 'rgba(94,230,192,0.22)' : 'rgba(120,132,145,0.14)';
+    ctx.strokeStyle = active ? 'rgba(94,230,192,0.13)' : 'rgba(120,132,145,0.08)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(l.px, l.py); ctx.lineTo(apex.x, apex.y); ctx.lineTo(rr.px, rr.py);
@@ -669,49 +679,67 @@
         ctx.restore();
       }
 
-      function readingDot(pt, colour) {
+      function readingDot(pt, colour, r) {
         ctx.save();
         ctx.shadowColor = colour;
         ctx.shadowBlur = 9;
         ctx.fillStyle = colour;
-        ctx.beginPath(); ctx.arc(pt.px, pt.py, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(pt.px, pt.py, r || 4.5, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       }
-      readingDot(e1, '#5ee6c0');
-      readingDot(e2, '#ffb05c');
+
+      // When the two readings agree they land on the same pixel, and drawing
+      // both plus the person turns into an unreadable blob. Agreement is one
+      // marker; disagreement is two.
+      var sep = Math.hypot(e1.px - e2.px, e1.py - e2.py);
+      if (sep < 9) {
+        readingDot(e1, '#5ee6c0', 5);
+        ctx.strokeStyle = 'rgba(94,230,192,0.55)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(e1.px, e1.py, 9, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        readingDot(e1, '#5ee6c0');
+        readingDot(e2, '#ffb05c');
+      }
 
       if (!ok) {
+        // Below the span: the person ring and its label occupy the space above.
         var mx = (e1.px + e2.px) / 2, my = (e1.py + e2.py) / 2;
         var label = human(r.dist) + ' apart';
         ctx.font = '10px ui-monospace, monospace';
         var tw = ctx.measureText(label).width;
-        ctx.fillStyle = 'rgba(11,15,20,0.88)';
-        roundRect(ctx, mx - tw / 2 - 6, my - 22, tw + 12, 15, 4);
+        ctx.fillStyle = 'rgba(11,15,20,0.9)';
+        roundRect(ctx, mx - tw / 2 - 6, my + 9, tw + 12, 16, 4);
         ctx.fill();
+        ctx.strokeStyle = 'rgba(255,107,107,0.35)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, mx - tw / 2 - 6, my + 9, tw + 12, 16, 4);
+        ctx.stroke();
         ctx.fillStyle = col;
         ctx.textAlign = 'center';
-        ctx.fillText(label, mx, my - 11);
+        ctx.fillText(label, mx, my + 20);
         ctx.textAlign = 'left';
       }
     }
 
-    // The person: a soft presence, not a wireframe circle.
+    // Where the person actually is: a hollow ring, so the coloured readings
+    // sit legibly inside it instead of being covered by it.
     var sp = toPx(state.sx, state.sz);
-    var glow = ctx.createRadialGradient(sp.px, sp.py, 0, sp.px, sp.py, 22);
-    glow.addColorStop(0, 'rgba(231,237,244,0.30)');
+    var glow = ctx.createRadialGradient(sp.px, sp.py, 0, sp.px, sp.py, 26);
+    glow.addColorStop(0, 'rgba(231,237,244,0.13)');
     glow.addColorStop(1, 'rgba(231,237,244,0)');
     ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(sp.px, sp.py, 22, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sp.px, sp.py, 26, 0, Math.PI * 2); ctx.fill();
 
-    ctx.fillStyle = '#e7edf4';
-    ctx.beginPath(); ctx.arc(sp.px, sp.py, 5.5, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(231,237,244,0.55)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(sp.px, sp.py, 10, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(231,237,244,0.8)';
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.arc(sp.px, sp.py, 15, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
 
     ctx.fillStyle = 'rgba(231,237,244,0.85)';
     ctx.font = '10px ui-monospace, monospace';
-    ctx.fillText('person', sp.px + 15, sp.py + 3);
+    ctx.fillText('person', sp.px + 20, sp.py - 12);
 
     if (!hasHover) {
       ctx.fillStyle = 'rgba(139,148,158,0.75)';

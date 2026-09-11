@@ -869,3 +869,7 @@ a { color: inherit; }
 .job-org .org-link:hover,
 .lede a:hover { color: var(--accent); border-bottom-color: var(--accent-dk); }
 .lede a { color: var(--text); font-weight: 500; }
+
+/* Keep "(0.50, 3.20) m" on one line — the unit wrapping alone reads as a
+   broken value on narrow screens. */
+.stereo-row code { white-space: nowrap; }
