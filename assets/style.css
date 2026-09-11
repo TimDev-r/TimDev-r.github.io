@@ -856,3 +856,16 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .btn-dot { animation: none; }
 }
+
+/* Employer link in the experience timeline — legible, but it must not
+   compete with the job title above it. */
+.job-org .org-link,
+.lede a {
+  color: var(--text-2);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+  transition: color .2s var(--ease), border-color .2s var(--ease);
+}
+.job-org .org-link:hover,
+.lede a:hover { color: var(--accent); border-bottom-color: var(--accent-dk); }
+.lede a { color: var(--text); font-weight: 500; }
