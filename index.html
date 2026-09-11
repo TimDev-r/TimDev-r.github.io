@@ -192,7 +192,12 @@
     <div class="wrap">
       <h2 class="section-title reveal"><span class="num">03</span> Try it: motion signatures</h2>
       <p class="section-lede reveal">
-        The same algorithm as <a href="https://github.com/TimDev-r/motion-groundtruth-tools">motion-groundtruth-tools</a>, running here in your browser.
+        Two algorithms from the repositories above, running here in your browser — the same logic, ported to JavaScript.
+      </p>
+
+      <h3 class="demo-title reveal">Motion signatures</h3>
+      <p class="demo-intro reveal">
+        From <a href="https://github.com/TimDev-r/motion-groundtruth-tools">motion-groundtruth-tools</a>.
         It bins movement by <em>distance from the camera</em> into 128 characters, so a long recording becomes scannable text.
         <strong>Drag the subject</strong>, or change its distance.
       </p>
@@ -221,10 +226,51 @@
         </ul>
       </div>
 
-      <p class="more reveal">
+      <p class="demo-note reveal">
         Notice <strong>two</strong> bands light up. Depth is read from the current frame, so a moving subject marks
         its own distance <em>and</em> the wall it just uncovered — a disocclusion trail. It's inherent to differencing
         against a single depth map, and it's the first thing that confuses anyone reading a signature.
+      </p>
+
+      <h3 class="demo-title reveal">Cross-camera matching</h3>
+      <p class="demo-intro reveal">
+        From <a href="https://github.com/TimDev-r/realsense-multicam-detection">realsense-multicam-detection</a>.
+        One person, two cameras. Each deprojects its own bounding-box centre to 3D; if the two points land within
+        10 cm of each other, it's the same person. <strong>Drag the subject</strong>, and try widening the baseline.
+      </p>
+
+      <div class="demo reveal" id="stereo-demo">
+        <canvas class="stereo-view" width="640" height="340" role="img"
+                aria-label="Top-down plan: two cameras observing one subject"></canvas>
+
+        <div class="demo-controls">
+          <label for="st-baseline">Baseline</label>
+          <input type="range" id="st-baseline" min="0" max="1.5" step="0.01" value="0.06">
+          <output id="st-baseline-val">0.06 m</output>
+        </div>
+        <div class="demo-controls">
+          <label for="st-noise">Depth noise</label>
+          <input type="range" id="st-noise" min="0" max="0.08" step="0.002" value="0.01">
+          <output id="st-noise-val">10 mm</output>
+          <label class="demo-check">
+            <input type="checkbox" id="st-calib"> Apply calibration&nbsp;(R,&nbsp;T)
+          </label>
+        </div>
+
+        <div class="stereo-out">
+          <div class="stereo-row"><span>camera 1 → subject</span><code id="st-p1">—</code></div>
+          <div class="stereo-row"><span>camera 2 → subject</span><code id="st-p2">—</code></div>
+          <div class="stereo-row stereo-dist"><span>‖p₁ − p₂‖</span><code id="st-d">—</code></div>
+          <p class="stereo-verdict" id="st-verdict">—</p>
+        </div>
+      </div>
+
+      <p class="demo-note reveal">
+        With calibration off, the separation never drops below the baseline — because
+        <code>depth_matching.py</code> compares each camera's <em>own</em> 3D points without transforming them into a
+        shared frame. Push the baseline past 10 cm and matching fails for a person both cameras can see perfectly well.
+        Tick <strong>Apply calibration</strong> and the stored <code>R, T</code> collapses the gap to sensor noise.
+        That's the open issue named in the repo's README, made visible.
       </p>
     </div>
   </section>

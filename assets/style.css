@@ -598,3 +598,108 @@ a { color: inherit; }
   .demo-view { height: 220px; }
   .demo { padding: 12px; }
 }
+
+/* ───────────── demo section scaffolding ───────────── */
+
+.demo-title {
+  font-family: var(--mono);
+  font-size: .8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--accent);
+  margin-top: 52px;
+}
+.section-lede + .demo-title { margin-top: 8px; }
+
+.demo-intro {
+  color: var(--text-3);
+  font-size: .93rem;
+  max-width: 64ch;
+  margin-top: 10px;
+}
+.demo-intro a { color: var(--text-2); text-decoration: none; border-bottom: 1px solid var(--line); }
+.demo-intro a:hover { color: var(--accent); border-bottom-color: var(--accent-dk); }
+.demo-intro em { color: var(--text-2); font-style: italic; }
+.demo-intro strong { color: var(--text); font-weight: 600; }
+
+.demo-note {
+  color: var(--text-3);
+  font-size: .88rem;
+  max-width: 68ch;
+  margin-top: 18px;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+}
+.demo-note strong { color: var(--text-2); }
+.demo-note em { color: var(--text-2); font-style: italic; }
+.demo-note code {
+  font-family: var(--mono); font-size: .84em;
+  color: var(--text-2); background: var(--bg-2);
+  padding: 1px 5px; border-radius: 4px;
+}
+
+/* ───────────── stereo matching demo ───────────── */
+
+.stereo-view {
+  display: block;
+  width: 100%;
+  height: 340px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.demo-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.demo-check input { accent-color: var(--accent); width: 15px; height: 15px; }
+
+.stereo-out {
+  margin-top: 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.stereo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  font-family: var(--mono);
+  font-size: .74rem;
+  color: var(--text-3);
+  padding: 3px 0;
+}
+.stereo-row code { color: var(--text-2); font-family: var(--mono); }
+.stereo-dist {
+  border-top: 1px solid var(--line-soft);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+.stereo-dist code { color: var(--text); font-weight: 700; }
+
+.stereo-verdict {
+  font-family: var(--mono);
+  font-size: .76rem;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  color: var(--text-2);
+}
+.stereo-verdict.ok   { color: var(--accent);  border-color: var(--accent-dk); background: var(--accent-gl); }
+.stereo-verdict.bad  { color: #ff8080; border-color: #6b2f2f; background: rgba(255,107,107,.07); }
+.stereo-verdict.warn { color: #ffb05c; border-color: #6b5330; background: rgba(255,176,92,.07); }
+
+@media (max-width: 560px) {
+  .stereo-view { height: 260px; }
+  .stereo-row { font-size: .68rem; }
+}
