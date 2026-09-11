@@ -873,3 +873,96 @@ a { color: inherit; }
 /* Keep "(0.50, 3.20) m" on one line — the unit wrapping alone reads as a
    broken value on narrow screens. */
 .stereo-row code { white-space: nowrap; }
+
+/* ───────────── before / after switch ───────────── */
+
+.seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+}
+
+.seg-btn {
+  font-family: var(--mono);
+  font-size: .74rem;
+  line-height: 1.35;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: color .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
+}
+.seg-btn:hover { color: var(--text-2); background: var(--surface); }
+
+.seg-tag {
+  display: block;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 3px;
+}
+
+/* The active half carries the accent so the current state is unambiguous. */
+.seg-btn.is-on {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--accent-dk);
+}
+.seg-btn.is-on .seg-tag { color: var(--accent); }
+
+/* "Before" reads as the broken/limited state once selected. */
+.seg-btn[data-mode="plain"].is-on,
+.seg-btn[data-calib="0"].is-on {
+  border-color: #6b5330;
+  background: rgba(255, 176, 92, .07);
+}
+.seg-btn[data-mode="plain"].is-on .seg-tag,
+.seg-btn[data-calib="0"].is-on .seg-tag { color: #ffb05c; }
+
+/* The plain-detection strip: one undivided bar, no distance information. */
+.demo-sig.is-plain {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.demo-sig.is-plain span { display: none; }
+.demo-sig.is-plain::after {
+  content: attr(data-plain);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: .74rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  min-height: 30px;
+  color: #04120e;
+  background: #ffb05c;
+}
+.demo-sig.is-plain[data-plain="no movement"]::after {
+  color: var(--text-3);
+  background: #222a34;
+}
+
+/* The depth axis means nothing without bins — hide it in the plain mode. */
+.demo-out.is-plain .demo-axis { visibility: hidden; }
+
+@media (max-width: 560px) {
+  .seg { grid-template-columns: 1fr; }
+  .seg-btn { font-size: .7rem; }
+}
+
+/* In plain-detection mode there are no symbols, so the key explains nothing. */
+.demo-out.is-plain ~ .demo-legend { display: none; }

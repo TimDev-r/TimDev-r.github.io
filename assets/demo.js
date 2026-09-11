@@ -45,6 +45,10 @@
     while (trail.length > TRAIL_MAX) trail.shift();
   }
 
+  // 'depth'  — the 128-bin signature, the thing this project produces
+  // 'plain'  — what a bare motion detector gives you: movement, yes or no
+  var mode = 'depth';
+
   var state = {
     x: 0.35,            // subject centre, 0..1 across the frame
     prevX: 0.30,
@@ -142,6 +146,24 @@
     for (var j = 0; j < BINS; j++) {
       if (symbolFor(hist[j]) !== '-') active.push(((j / BINS) * DEPTH_MAX).toFixed(1) + ' m');
     }
+    var out = sigEl.closest('.demo-out');
+    if (mode === 'plain') {
+      // Everything the histogram knows, collapsed to the one bit a plain
+      // detector reports. The distances are still computed — they just
+      // have nowhere to go.
+      sigEl.classList.add('is-plain');
+      if (out) out.classList.add('is-plain');
+      sigEl.setAttribute('data-plain', active.length ? 'movement detected' : 'no movement');
+      readout.textContent = active.length
+        ? 'Something moved. That is all this tells you — not how far away, not how many things.'
+        : 'Nothing is moving right now.';
+      return;
+    }
+
+    sigEl.classList.remove('is-plain');
+    if (out) out.classList.remove('is-plain');
+    sigEl.removeAttribute('data-plain');
+
     if (!active.length) {
       readout.textContent = 'Nothing is moving right now.';
     } else if (active.length === 1) {
@@ -385,6 +407,18 @@
     step();
   });
 
+  root.querySelectorAll('.seg-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      mode = btn.getAttribute('data-mode');
+      root.querySelectorAll('.seg-btn').forEach(function (b) {
+        var on = b === btn;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+      step();
+    });
+  });
+
   playBtn.addEventListener('click', function () {
     if (state.playing) { trail.length = 0; step(); }   // settle when paused
     state.playing = !state.playing;
@@ -460,7 +494,7 @@
   var baseOut = root.querySelector('#st-baseline-val');
   var noiseIn = root.querySelector('#st-noise');
   var noiseOut = root.querySelector('#st-noise-val');
-  var calibIn = root.querySelector('#st-calib');
+  var segBtns = root.querySelectorAll('.seg-btn');
   var p1El = root.querySelector('#st-p1');
   var p2El = root.querySelector('#st-p2');
   var dEl = root.querySelector('#st-d');
@@ -473,7 +507,7 @@
 
   var hasHover = window.matchMedia('(hover: hover)').matches;
 
-  var state = { sx: 0.5, sz: 3.2, baseline: 0.06, noise: 0.01, calib: false, dragging: false };
+  var state = { sx: 0.5, sz: 3.2, baseline: 0.45, noise: 0.01, calib: true, dragging: false };
   var dashPhase = 0;   // marching-ants offset for the measurement rays
 
   function toPx(x, z) {
@@ -530,7 +564,7 @@
     ctx.font = '10px ui-monospace, monospace';
     // At a small baseline the two cameras are only a few pixels apart, so two
     // labels overprint into unreadable mush. Merge them instead.
-    if (Math.abs(p2x - p1x) < 46) {
+    if (Math.abs(p2x - p1x) < 38) {
       ctx.fillStyle = (a1 || a2) ? '#5ee6c0' : '#6f7d8c';
       ctx.textAlign = 'center';
       ctx.fillText('cam 1 + 2', (p1x + p2x) / 2, y);
@@ -820,9 +854,16 @@
     noiseOut.textContent = Math.round(state.noise * 1000) + ' mm';
     render();
   });
-  calibIn.addEventListener('change', function () {
-    state.calib = calibIn.checked;
-    render();
+  segBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      state.calib = btn.getAttribute('data-calib') === '1';
+      segBtns.forEach(function (b) {
+        var on = b === btn;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+      render();
+    });
   });
 
   function resize() {

@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 
-<link rel="stylesheet" href="assets/style.css?v=20260912011536">
+<link rel="stylesheet" href="assets/style.css?v=20260912012232">
 </head>
 <body>
 
@@ -215,10 +215,21 @@
       <p class="demo-intro reveal">
         <strong>The idea:</strong> squeeze every frame down to a single line of text showing <em>how far away</em>
         anything moved. Hours of video become a page you can skim. Below, the strip is that line —
-        left is close to the camera, right is far away. <strong>Tap or drag</strong> the person to see it react.
+        left is close to the camera, right is far away.
+        <strong>Flip the switch</strong> to compare it against a plain motion detector, and
+        <strong>tap or drag</strong> the person to see it react.
       </p>
 
       <div class="demo reveal" id="sig-demo">
+        <div class="seg" role="group" aria-label="Compare approaches">
+          <button type="button" class="seg-btn" data-mode="plain">
+            <span class="seg-tag">Before</span> plain motion detection
+          </button>
+          <button type="button" class="seg-btn is-on" data-mode="depth" aria-pressed="true">
+            <span class="seg-tag">After</span> depth signature
+          </button>
+        </div>
+
         <canvas class="demo-view" width="640" height="300" role="img"
                 aria-label="Simulated camera view: a person moving across a wall"></canvas>
 
@@ -271,25 +282,32 @@
       <p class="demo-intro reveal">
         <strong>The idea:</strong> don't compare what the cameras <em>see</em> — compare <em>where they think the
         person is standing</em>. Two sightings of the same spot in the room must be the same person.
-        <strong>Tap or drag</strong> to move the person around.
+        <strong>Flip the switch</strong> to see what happens when the cameras aren't lined up first, and
+        <strong>tap or drag</strong> to move the person around.
       </p>
 
       <div class="demo reveal" id="stereo-demo">
+        <div class="seg" role="group" aria-label="Compare approaches">
+          <button type="button" class="seg-btn" data-calib="0">
+            <span class="seg-tag">Before</span> cameras not lined up
+          </button>
+          <button type="button" class="seg-btn is-on" data-calib="1" aria-pressed="true">
+            <span class="seg-tag">After</span> cameras lined up
+          </button>
+        </div>
+
         <canvas class="stereo-view" width="640" height="340" role="img"
                 aria-label="Overhead view: two cameras observing one person"></canvas>
 
         <div class="demo-controls">
           <label for="st-baseline">Gap between cameras</label>
-          <input type="range" id="st-baseline" min="0" max="1.5" step="0.01" value="0.06">
-          <output id="st-baseline-val">0.06 m</output>
+          <input type="range" id="st-baseline" min="0" max="1.5" step="0.01" value="0.45">
+          <output id="st-baseline-val">0.45 m</output>
         </div>
         <div class="demo-controls">
           <label for="st-noise">Sensor error</label>
           <input type="range" id="st-noise" min="0" max="0.08" step="0.002" value="0.01">
           <output id="st-noise-val">10 mm</output>
-          <label class="demo-check">
-            <input type="checkbox" id="st-calib"> Line the cameras up first
-          </label>
         </div>
 
         <div class="stereo-out">
@@ -304,9 +322,9 @@
       </div>
 
       <p class="demo-note reveal">
-        Slide the cameras apart and watch it break. Each camera measures from <em>itself</em>, so the further apart
-        they sit, the further apart their answers look — and the system decides one person is two. Tick
-        <strong>Line the cameras up first</strong> and it works again at any distance.
+        Switch to <strong>Before</strong> and watch it break. Each camera measures from <em>itself</em>, so the
+        further apart they sit, the further apart their answers look — and the system decides one person is two.
+        Widening the gap between the cameras makes it worse; lining them up first fixes it at any distance.
         <br><br>
         Lining the cameras up is the step that makes a multi-camera setup work, and it's the easiest one to
         underestimate. Skip it and nothing crashes — the system keeps running and the numbers still look
@@ -412,7 +430,7 @@
   </div>
 </footer>
 
-<script src="assets/main.js?v=20260912011536"></script>
-<script src="assets/demo.js?v=20260912011536"></script>
+<script src="assets/main.js?v=20260912012232"></script>
+<script src="assets/demo.js?v=20260912012232"></script>
 </body>
 </html>
