@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 
-<link rel="stylesheet" href="assets/style.css?v=20260912012232">
+<link rel="stylesheet" href="assets/style.css?v=20260912015404">
 </head>
 <body>
 
@@ -222,10 +222,10 @@
 
       <div class="demo reveal" id="sig-demo">
         <div class="seg" role="group" aria-label="Compare approaches">
-          <button type="button" class="seg-btn" data-mode="plain">
+          <button type="button" class="seg-btn is-on" data-mode="plain" aria-pressed="true">
             <span class="seg-tag">Before</span> plain motion detection
           </button>
-          <button type="button" class="seg-btn is-on" data-mode="depth" aria-pressed="true">
+          <button type="button" class="seg-btn" data-mode="depth">
             <span class="seg-tag">After</span> depth signature
           </button>
         </div>
@@ -256,16 +256,19 @@
       </div>
 
       <p class="demo-note reveal">
-        Notice <strong>two</strong> marks appear, not one. Moving reveals the wall behind you, and the camera counts
-        that as movement too — so a single person shows up twice: once where they are, once where they were.
-        Knowing to expect that is the difference between trusting the data and chasing a phantom bug.
+        One person lights up a whole <strong>span</strong> of distances, not a single mark. Stepping aside uncovers
+        what was behind them — floor stretching away, then the wall — and the camera counts all of it as movement.
+        The dense end of the span is the person; the thin tail is the room they stopped hiding.
+        Expecting that is the difference between trusting the data and chasing a phantom bug.
       </p>
       <details class="demo-details reveal">
         <summary>The technical version</summary>
         <p>
           Depth is sampled from the current frame, so pixels the subject has just vacated report the background
           distance rather than the subject's. The signature therefore carries a <em>disocclusion trail</em> —
-          inherent to differencing against a single depth map, not a defect. It's pinned down by a test in the
+          inherent to differencing against a single depth map, not a defect. Because the background here is a
+          floor receding to a wall, that trail is a span rather than a second spike, and it thins with distance
+          as perspective compresses more metres into each row of pixels. It's pinned down by a test in the
           repository so it can't silently change.
         </p>
       </details>
@@ -288,10 +291,10 @@
 
       <div class="demo reveal" id="stereo-demo">
         <div class="seg" role="group" aria-label="Compare approaches">
-          <button type="button" class="seg-btn" data-calib="0">
+          <button type="button" class="seg-btn is-on" data-calib="0" aria-pressed="true">
             <span class="seg-tag">Before</span> cameras not lined up
           </button>
-          <button type="button" class="seg-btn is-on" data-calib="1" aria-pressed="true">
+          <button type="button" class="seg-btn" data-calib="1">
             <span class="seg-tag">After</span> cameras lined up
           </button>
         </div>
@@ -301,14 +304,20 @@
 
         <div class="demo-controls">
           <label for="st-baseline">Gap between cameras</label>
-          <input type="range" id="st-baseline" min="0" max="1.5" step="0.01" value="0.45">
-          <output id="st-baseline-val">0.45 m</output>
+          <input type="range" id="st-baseline" min="0" max="1.5" step="0.01" value="1.00">
+          <output id="st-baseline-val">1.00 m</output>
         </div>
         <div class="demo-controls">
           <label for="st-noise">Sensor error</label>
-          <input type="range" id="st-noise" min="0" max="0.08" step="0.002" value="0.01">
+          <input type="range" id="st-noise" min="0" max="0.2" step="0.005" value="0.01">
           <output id="st-noise-val">10 mm</output>
         </div>
+
+        <ul class="stereo-key">
+          <li><span class="k-ring"></span> where the person actually is</li>
+          <li><span class="k-dot k-c1"></span> camera 1's answer</li>
+          <li><span class="k-dot k-c2"></span> camera 2's answer</li>
+        </ul>
 
         <div class="stereo-out">
           <div class="stereo-row"><span>Where camera 1 thinks they are</span><code id="st-p1">—</code></div>
@@ -330,6 +339,11 @@
         underestimate. Skip it and nothing crashes — the system keeps running and the numbers still look
         reasonable. That's the kind of failure you only catch by measuring, which is why it's worth showing
         rather than describing.
+        <br><br>
+        Alignment isn't the only way to break it. Turn <strong>sensor error</strong> up with the cameras
+        perfectly lined up and watch the verdict flicker: the same person is counted once, then twice, then
+        once again, purely because the depth readings wobble either side of the 10 cm cut-off. Any fixed
+        threshold has that edge, and knowing where it sits for your hardware is part of the job.
       </p>
       <details class="demo-details reveal">
         <summary>The technical version</summary>
@@ -430,7 +444,7 @@
   </div>
 </footer>
 
-<script src="assets/main.js?v=20260912012232"></script>
-<script src="assets/demo.js?v=20260912012232"></script>
+<script src="assets/main.js?v=20260912015404"></script>
+<script src="assets/demo.js?v=20260912015404"></script>
 </body>
 </html>

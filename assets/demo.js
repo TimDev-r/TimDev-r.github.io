@@ -47,7 +47,7 @@
 
   // 'depth'  — the 128-bin signature, the thing this project produces
   // 'plain'  — what a bare motion detector gives you: movement, yes or no
-  var mode = 'depth';
+  var mode = 'plain';   // matches the 'Before' half selected in the markup
 
   var state = {
     x: 0.35,            // subject centre, 0..1 across the frame
@@ -96,6 +96,17 @@
     return u >= r.x0 && u <= r.x1 && v >= r.y0 && v <= r.y1;
   }
 
+  /* What the camera sees at screen row `v` when nothing is in the way.
+     The person stands in front of BOTH surfaces: their upper body against
+     the back wall, their legs against the floor. Treating every uncovered
+     pixel as "the wall" was wrong — the floor is nearer, and how near
+     depends on the row. */
+  function backgroundDepth(v) {
+    if (v <= HORIZON) return Infinity;             // above the horizon: no surface
+    var floorZ = (CAM_H * FOCAL) / (v - HORIZON);  // invert projY for up = 0
+    return floorZ < WALL_M ? floorZ : WALL_M;      // floor if nearer, else the wall
+  }
+
   /* The algorithm: which bins light up, and how strongly. */
   function computeHistogram() {
     var prev = subjectRect(state.prevX, state.depth);
@@ -110,9 +121,9 @@
         var isSubject = inRect(curr, u, v);
         if (wasSubject === isSubject) continue;   // nothing changed here
 
-        // Depth is read from the CURRENT frame — so a pixel the subject has
-        // just vacated reports the wall behind it, not the subject.
-        var d = isSubject ? state.depth : WALL_M;
+        // Depth is read from the CURRENT frame — so a pixel the person has
+        // just vacated reports whatever is behind them, not the person.
+        var d = isSubject ? state.depth : backgroundDepth(v);
         if (d < DEPTH_MIN || d > DEPTH_MAX) continue;
         hist[binFor(d)] += PIXEL_SCALE;
       }
@@ -142,19 +153,39 @@
     sigEl.textContent = '';
     sigEl.appendChild(frag);
 
-    var active = [];
-    for (var j = 0; j < BINS; j++) {
-      if (symbolFor(hist[j]) !== '-') active.push(((j / BINS) * DEPTH_MAX).toFixed(1) + ' m');
-    }
     var out = sigEl.closest('.demo-out');
+
+    /* Group the lit bins into contiguous BANDS. Listing every bin was fine
+       when the background was a single flat wall, but the floor recedes, so
+       one moving person now lights a continuous span of distances. Small
+       gaps inside a span are bridged — thin bins fall under the threshold
+       without meaning the band ended. */
+    function bands() {
+      var runs = [], cur = null, i = 0;
+      while (i < BINS) {
+        if (symbolFor(hist[i]) !== '-') {
+          if (!cur) cur = { a: i, b: i }; else cur.b = i;
+          i++;
+          continue;
+        }
+        var j = i;
+        while (j < BINS && symbolFor(hist[j]) === '-') j++;
+        if (cur && j < BINS && j - i <= 3) { i = j; continue; }   // bridge
+        if (cur) { runs.push(cur); cur = null; }
+        i = j;
+      }
+      if (cur) runs.push(cur);
+      return runs;
+    }
+
+    var metres = function (bin) { return (bin / BINS) * DEPTH_MAX; };
+    var runs = bands();
+
     if (mode === 'plain') {
-      // Everything the histogram knows, collapsed to the one bit a plain
-      // detector reports. The distances are still computed — they just
-      // have nowhere to go.
       sigEl.classList.add('is-plain');
       if (out) out.classList.add('is-plain');
-      sigEl.setAttribute('data-plain', active.length ? 'movement detected' : 'no movement');
-      readout.textContent = active.length
+      sigEl.setAttribute('data-plain', runs.length ? 'movement detected' : 'no movement');
+      readout.textContent = runs.length
         ? 'Something moved. That is all this tells you — not how far away, not how many things.'
         : 'Nothing is moving right now.';
       return;
@@ -164,13 +195,23 @@
     if (out) out.classList.remove('is-plain');
     sigEl.removeAttribute('data-plain');
 
-    if (!active.length) {
+    if (!runs.length) {
       readout.textContent = 'Nothing is moving right now.';
-    } else if (active.length === 1) {
-      readout.textContent = 'Movement ' + active[0] + ' from the camera.';
+      return;
+    }
+
+    var parts = runs.map(function (r) {
+      var lo = metres(r.a), hi = metres(r.b + 1);
+      return (hi - lo) < 0.45
+        ? lo.toFixed(1) + ' m'
+        : lo.toFixed(1) + '–' + hi.toFixed(1) + ' m';
+    });
+
+    if (runs.length === 1 && (metres(runs[0].b + 1) - metres(runs[0].a)) >= 0.45) {
+      readout.textContent = 'Movement across ' + parts[0] + ' — the person, and everything ' +
+                            'behind them they stopped covering.';
     } else {
-      readout.textContent = 'Movement at two distances — ' + active.join(' and ') +
-                            ' from the camera.';
+      readout.textContent = 'Movement at ' + parts.join(', then ') + ' from the camera.';
     }
   }
 
@@ -420,7 +461,13 @@
   });
 
   playBtn.addEventListener('click', function () {
-    if (state.playing) { trail.length = 0; step(); }   // settle when paused
+    if (state.playing) {
+      // Pausing does not freeze the camera — it means the person stopped.
+      // Two identical frames differ nowhere, so there is no motion to report.
+      trail.length = 0;
+      state.prevX = state.x;
+      step();
+    }
     state.playing = !state.playing;
     playBtn.textContent = state.playing ? 'Pause' : 'Play';
     playBtn.setAttribute('aria-pressed', String(state.playing));
@@ -507,7 +554,7 @@
 
   var hasHover = window.matchMedia('(hover: hover)').matches;
 
-  var state = { sx: 0.5, sz: 3.2, baseline: 0.45, noise: 0.01, calib: true, dragging: false };
+  var state = { sx: 0.5, sz: 3.2, baseline: 1.00, noise: 0.01, calib: false, dragging: false };
   var dashPhase = 0;   // marching-ants offset for the measurement rays
 
   function toPx(x, z) {
@@ -523,14 +570,18 @@
     };
   }
 
-  /* Deterministic pseudo-noise, so the readout is stable while dragging
-     instead of flickering every frame.
+  /* Depth noise. Resampled on a slow tick rather than frozen per position:
+     a real sensor's error wobbles frame to frame, and a fixed draw made the
+     slider look dead — at one spot the two cameras' errors happened to
+     cancel, so even 20 cm of error produced a 2 cm disagreement.
 
-     Uses a hash rather than plain sin(a*seed): with two nearby seeds, sin can
-     land on near-identical values at a given position, and the two cameras'
-     noise then cancels instead of accumulating. */
+     A hash, not plain sin(a*seed): with two nearby seeds sin lands on
+     near-identical values, and the two errors cancel instead of accumulating. */
+  var noisePhase = 0;
+
   function jitter(seed) {
-    var v = Math.sin(state.sx * 12.9898 + state.sz * 78.233 + seed * 37.719) * 43758.5453;
+    var v = Math.sin(state.sx * 12.9898 + state.sz * 78.233 +
+                     seed * 37.719 + noisePhase * 19.371) * 43758.5453;
     return (v - Math.floor(v)) * 2 - 1;    // well-distributed in [-1, 1]
   }
 
@@ -798,9 +849,18 @@
     p1El.textContent = r.v1 ? fmt(r.p1) : 'not in view';
     p2El.textContent = r.v2 ? fmt(state.calib ? r.q2 : r.p2) : 'not in view';
 
+    if (!r.v1 && !r.v2) {
+      dEl.textContent = '—';
+      verdictEl.textContent = 'MISSED ENTIRELY — the person is outside both cameras\u2019 view, ' +
+                              'so nothing is detected and nothing is counted.';
+      verdictEl.className = 'stereo-verdict bad';
+      return;
+    }
     if (!r.v1 || !r.v2) {
       dEl.textContent = '—';
-      verdictEl.textContent = 'Only one camera can see this person — there is nothing to compare.';
+      verdictEl.textContent = 'SEEN ONCE — only camera ' + (r.v1 ? '1' : '2') +
+                              ' can see this person, so there is no second answer to compare against. ' +
+                              'They are counted, but nothing checks the result.';
       verdictEl.className = 'stereo-verdict warn';
       return;
     }
@@ -851,7 +911,9 @@
   });
   noiseIn.addEventListener('input', function () {
     state.noise = parseFloat(noiseIn.value);
-    noiseOut.textContent = Math.round(state.noise * 1000) + ' mm';
+    noiseOut.textContent = state.noise < 0.01
+      ? Math.round(state.noise * 1000) + ' mm'
+      : (state.noise * 100).toFixed(0) + ' cm';
     render();
   });
   segBtns.forEach(function (btn) {
@@ -889,6 +951,8 @@
   function tick(now) {
     if (!stillness && onScreen && now - lastTick > 34) {
       dashPhase = (dashPhase + 0.6) % 9;
+      // Slow enough to read; fast enough that the error is visibly live.
+      noisePhase = Math.floor(now / 420);
       lastTick = now;
       render();
     }
