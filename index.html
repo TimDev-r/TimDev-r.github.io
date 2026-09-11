@@ -124,9 +124,23 @@
   <section class="section" id="projects">
     <div class="wrap">
       <h2 class="section-title reveal"><span class="num">02</span> Selected projects</h2>
-      <p class="section-lede reveal">Public repositories — data engineering, recommender systems and visualisation. My computer-vision work is covered under <a href="#work">Experience</a>; those repositories aren't public.</p>
+      <p class="section-lede reveal">Public repositories — computer vision, data engineering and visualisation. Every one runs from a clean checkout; the vision projects generate their own test data rather than shipping recordings.</p>
 
       <div class="grid">
+
+        <a class="card reveal" href="https://github.com/TimDev-r/realsense-multicam-detection">
+          <div class="card-top"><span class="card-lang" data-lang="Python">Python</span><span class="card-arrow" aria-hidden="true">↗</span></div>
+          <h3>Multi-Camera Human Detection</h3>
+          <p>Person detection across three Intel RealSense cameras. Bounding boxes are deprojected to metric 3D and matched in world space, so one person seen by two cameras stays one person. Calibration runs against a synthetic chessboard — no hardware needed.</p>
+          <p class="tags"><span>Computer Vision</span><span>YOLO</span><span>Stereo calibration</span><span>OpenCV</span></p>
+        </a>
+
+        <a class="card reveal" href="https://github.com/TimDev-r/motion-groundtruth-tools">
+          <div class="card-top"><span class="card-lang" data-lang="Python">Python</span><span class="card-arrow" aria-hidden="true">↗</span></div>
+          <h3>Motion Ground Truth Tools</h3>
+          <p>Bins inter-frame motion by distance from the camera into a 128-character signature, turning a long RGB-D recording into scannable text. Pure-numpy deprojection, so it needs no depth-camera SDK.</p>
+          <p class="tags"><span>RGB-D</span><span>Motion analysis</span><span>NumPy</span></p>
+        </a>
 
         <a class="card reveal" href="https://github.com/TimDev-r/senior-data-analyst-challenge">
           <div class="card-top"><span class="card-lang" data-lang="Python">Python</span><span class="card-arrow" aria-hidden="true">↗</span></div>
