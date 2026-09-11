@@ -828,3 +828,31 @@ a { color: inherit; }
   .stereo-row span { max-width: 62%; }
   .row-maths { display: none; }
 }
+
+/* ───────────── hero: "try the demos" call to action ───────────── */
+
+.btn-demo {
+  gap: 9px;
+  border-color: var(--accent-dk);
+  color: var(--accent);
+}
+.btn-demo:hover {
+  border-color: var(--accent);
+  background: var(--accent-gl);
+}
+
+/* A slow pulse to mark this as the interactive one, without shouting. */
+.btn-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+  animation: btn-pulse 2.4s var(--ease) infinite;
+}
+@keyframes btn-pulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(94, 230, 192, .45); }
+  50%      { opacity: .55; box-shadow: 0 0 0 5px rgba(94, 230, 192, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-dot { animation: none; }
+}

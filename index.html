@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 
-<link rel="stylesheet" href="assets/style.css?v=20260911134939">
+<link rel="stylesheet" href="assets/style.css?v=20260911142930">
 </head>
 <body>
 
@@ -55,6 +55,7 @@
       </p>
       <div class="hero-actions reveal">
         <a class="btn btn-primary" href="#projects">See the work</a>
+        <a class="btn btn-demo" href="#demo"><span class="btn-dot" aria-hidden="true"></span>Try the demos</a>
         <a class="btn" href="mailto:frankcastle689@gmail.com">Get in touch</a>
       </div>
       <ul class="hero-links reveal">
@@ -301,8 +302,10 @@
         they sit, the further apart their answers look — and the system decides one person is two. Tick
         <strong>Line the cameras up first</strong> and it works again at any distance.
         <br><br>
-        That's a genuine open bug in my own code, and I've left it in rather than quietly fixing the demo:
-        it's documented in the repository, and this is what it looks like.
+        Lining the cameras up is the step that makes a multi-camera setup work, and it's the easiest one to
+        underestimate. Skip it and nothing crashes — the system keeps running and the numbers still look
+        reasonable. That's the kind of failure you only catch by measuring, which is why it's worth showing
+        rather than describing.
       </p>
       <details class="demo-details reveal">
         <summary>The technical version</summary>
@@ -310,8 +313,9 @@
           <code>depth_matching.py</code> compares each camera's own camera-space points without transforming them
           through the stored extrinsics, so the separation can never fall below the baseline and the 10 cm match
           threshold effectively just tests the baseline. The calibration step writes valid <code>R</code> and
-          <code>T</code> to <code>calibration_data.npz</code> — they are simply never applied. Checking the box
-          applies them, collapsing the gap to sensor noise.
+          <code>T</code> to <code>calibration_data.npz</code>; applying them is the missing step. Checking the
+          box does exactly that, collapsing the gap to sensor noise. Carried as a known limitation in the
+          repository's README.
         </p>
       </details>
     </div>
@@ -401,7 +405,7 @@
   </div>
 </footer>
 
-<script src="assets/main.js?v=20260911134939"></script>
-<script src="assets/demo.js?v=20260911134939"></script>
+<script src="assets/main.js?v=20260911142930"></script>
+<script src="assets/demo.js?v=20260911142930"></script>
 </body>
 </html>
