@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 
-<link rel="stylesheet" href="assets/style.css?v=20260911133839">
+<link rel="stylesheet" href="assets/style.css?v=20260911134939">
 </head>
 <body>
 
@@ -190,24 +190,33 @@
   <!-- ───────────────────────── LIVE DEMO ───────────────────────── -->
   <section class="section" id="demo">
     <div class="wrap">
-      <h2 class="section-title reveal"><span class="num">03</span> Try it: motion signatures</h2>
+      <h2 class="section-title reveal"><span class="num">03</span> Try the work yourself</h2>
       <p class="section-lede reveal">
-        Two algorithms from the repositories above, running here in your browser — the same logic, ported to JavaScript.
+        Two real problems from my computer-vision work, running live in your browser. No background needed —
+        each one explains itself as you play with it.
       </p>
 
-      <h3 class="demo-title reveal">Motion signatures</h3>
+      <h3 class="demo-title reveal">Finding the few seconds that matter in hours of footage</h3>
+      <p class="demo-kicker reveal">
+        <span class="kicker-tag">motion signatures</span>
+        <a href="https://github.com/TimDev-r/motion-groundtruth-tools">motion-groundtruth-tools</a>
+      </p>
       <p class="demo-intro reveal">
-        From <a href="https://github.com/TimDev-r/motion-groundtruth-tools">motion-groundtruth-tools</a>.
-        It bins movement by <em>distance from the camera</em> into 128 characters, so a long recording becomes scannable text.
-        <strong>Tap or drag</strong> the subject, or change its distance.
+        <strong>The problem:</strong> a ten-hour recording is almost entirely nothing happening, and someone has
+        to find the moments that aren't.
+      </p>
+      <p class="demo-intro reveal">
+        <strong>The idea:</strong> squeeze every frame down to a single line of text showing <em>how far away</em>
+        anything moved. Hours of video become a page you can skim. Below, the strip is that line —
+        left is close to the camera, right is far away. <strong>Tap or drag</strong> the person to see it react.
       </p>
 
       <div class="demo reveal" id="sig-demo">
         <canvas class="demo-view" width="640" height="300" role="img"
-                aria-label="Simulated camera view: a subject moving across a wall"></canvas>
+                aria-label="Simulated camera view: a person moving across a wall"></canvas>
 
         <div class="demo-controls">
-          <label for="demo-depth">Subject distance</label>
+          <label for="demo-depth">How far away</label>
           <input type="range" id="demo-depth" min="0.5" max="7.5" step="0.1" value="3.0">
           <output id="demo-depth-val">3.0 m</output>
           <button type="button" id="demo-play" aria-pressed="true">Pause</button>
@@ -215,63 +224,96 @@
 
         <div class="demo-out">
           <div class="demo-sig" aria-live="off"></div>
-          <div class="demo-axis"><span>0 m</span><span>2 m</span><span>4 m</span><span>6 m</span><span>8 m</span></div>
+          <div class="demo-axis">
+            <span>0 m<em>close</em></span><span>2 m</span><span>4 m</span><span>6 m</span><span>8 m<em>far</em></span>
+          </div>
           <p class="demo-readout"></p>
         </div>
 
         <ul class="demo-legend">
-          <li><span class="sig-none">-</span> nothing moved</li>
-          <li><span class="sig-micro">x</span> micro-motion</li>
-          <li><span class="sig-move">+</span> movement</li>
+          <li><span class="sig-none">-</span> nothing moved at this distance</li>
+          <li><span class="sig-micro">x</span> slight movement</li>
+          <li><span class="sig-move">+</span> someone moving</li>
         </ul>
       </div>
 
       <p class="demo-note reveal">
-        Notice <strong>two</strong> bands light up. Depth is read from the current frame, so a moving subject marks
-        its own distance <em>and</em> the wall it just uncovered — a disocclusion trail. It's inherent to differencing
-        against a single depth map, and it's the first thing that confuses anyone reading a signature.
+        Notice <strong>two</strong> marks appear, not one. Moving reveals the wall behind you, and the camera counts
+        that as movement too — so a single person shows up twice: once where they are, once where they were.
+        Knowing to expect that is the difference between trusting the data and chasing a phantom bug.
       </p>
+      <details class="demo-details reveal">
+        <summary>The technical version</summary>
+        <p>
+          Depth is sampled from the current frame, so pixels the subject has just vacated report the background
+          distance rather than the subject's. The signature therefore carries a <em>disocclusion trail</em> —
+          inherent to differencing against a single depth map, not a defect. It's pinned down by a test in the
+          repository so it can't silently change.
+        </p>
+      </details>
 
-      <h3 class="demo-title reveal">Cross-camera matching</h3>
+      <h3 class="demo-title reveal">Counting people without counting anyone twice</h3>
+      <p class="demo-kicker reveal">
+        <span class="kicker-tag">cross-camera matching</span>
+        <a href="https://github.com/TimDev-r/realsense-multicam-detection">realsense-multicam-detection</a>
+      </p>
       <p class="demo-intro reveal">
-        From <a href="https://github.com/TimDev-r/realsense-multicam-detection">realsense-multicam-detection</a>.
-        One person, two cameras. Each deprojects its own bounding-box centre to 3D; if the two points land within
-        10 cm of each other, it's the same person. <strong>Tap or drag</strong> to move the subject, and try widening the baseline.
+        <strong>The problem:</strong> two cameras watch the same room. One person walks in, and both cameras see them.
+        Is that one person, or two?
+      </p>
+      <p class="demo-intro reveal">
+        <strong>The idea:</strong> don't compare what the cameras <em>see</em> — compare <em>where they think the
+        person is standing</em>. Two sightings of the same spot in the room must be the same person.
+        <strong>Tap or drag</strong> to move the person around.
       </p>
 
       <div class="demo reveal" id="stereo-demo">
         <canvas class="stereo-view" width="640" height="340" role="img"
-                aria-label="Top-down plan: two cameras observing one subject"></canvas>
+                aria-label="Overhead view: two cameras observing one person"></canvas>
 
         <div class="demo-controls">
-          <label for="st-baseline">Baseline</label>
+          <label for="st-baseline">Gap between cameras</label>
           <input type="range" id="st-baseline" min="0" max="1.5" step="0.01" value="0.06">
           <output id="st-baseline-val">0.06 m</output>
         </div>
         <div class="demo-controls">
-          <label for="st-noise">Depth noise</label>
+          <label for="st-noise">Sensor error</label>
           <input type="range" id="st-noise" min="0" max="0.08" step="0.002" value="0.01">
           <output id="st-noise-val">10 mm</output>
           <label class="demo-check">
-            <input type="checkbox" id="st-calib"> Apply calibration&nbsp;(R,&nbsp;T)
+            <input type="checkbox" id="st-calib"> Line the cameras up first
           </label>
         </div>
 
         <div class="stereo-out">
-          <div class="stereo-row"><span>camera 1 → subject</span><code id="st-p1">—</code></div>
-          <div class="stereo-row"><span>camera 2 → subject</span><code id="st-p2">—</code></div>
-          <div class="stereo-row stereo-dist"><span>‖p₁ − p₂‖</span><code id="st-d">—</code></div>
+          <div class="stereo-row"><span>Where camera 1 thinks they are</span><code id="st-p1">—</code></div>
+          <div class="stereo-row"><span>Where camera 2 thinks they are</span><code id="st-p2">—</code></div>
+          <div class="stereo-row stereo-dist">
+            <span>How far apart those two answers are <em class="row-maths">‖p₁ − p₂‖</em></span>
+            <code id="st-d">—</code>
+          </div>
           <p class="stereo-verdict" id="st-verdict">—</p>
         </div>
       </div>
 
       <p class="demo-note reveal">
-        With calibration off, the separation never drops below the baseline — because
-        <code>depth_matching.py</code> compares each camera's <em>own</em> 3D points without transforming them into a
-        shared frame. Push the baseline past 10 cm and matching fails for a person both cameras can see perfectly well.
-        Tick <strong>Apply calibration</strong> and the stored <code>R, T</code> collapses the gap to sensor noise.
-        That's the open issue named in the repo's README, made visible.
+        Slide the cameras apart and watch it break. Each camera measures from <em>itself</em>, so the further apart
+        they sit, the further apart their answers look — and the system decides one person is two. Tick
+        <strong>Line the cameras up first</strong> and it works again at any distance.
+        <br><br>
+        That's a genuine open bug in my own code, and I've left it in rather than quietly fixing the demo:
+        it's documented in the repository, and this is what it looks like.
       </p>
+      <details class="demo-details reveal">
+        <summary>The technical version</summary>
+        <p>
+          <code>depth_matching.py</code> compares each camera's own camera-space points without transforming them
+          through the stored extrinsics, so the separation can never fall below the baseline and the 10 cm match
+          threshold effectively just tests the baseline. The calibration step writes valid <code>R</code> and
+          <code>T</code> to <code>calibration_data.npz</code> — they are simply never applied. Checking the box
+          applies them, collapsing the gap to sensor noise.
+        </p>
+      </details>
     </div>
   </section>
 
@@ -359,7 +401,7 @@
   </div>
 </footer>
 
-<script src="assets/main.js?v=20260911133839"></script>
-<script src="assets/demo.js?v=20260911133839"></script>
+<script src="assets/main.js?v=20260911134939"></script>
+<script src="assets/demo.js?v=20260911134939"></script>
 </body>
 </html>

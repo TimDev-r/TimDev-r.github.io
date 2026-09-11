@@ -720,3 +720,111 @@ a { color: inherit; }
   .demo-controls button,
   .demo-check { grid-column: 1 / -1; justify-self: start; }
 }
+
+/* ───────────── plain-language demo framing ───────────── */
+
+.demo-title {
+  font-family: var(--sans);
+  font-size: clamp(1.05rem, 2.4vw, 1.32rem);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -.02em;
+  color: var(--text);
+  margin-top: 56px;
+  max-width: 30ch;
+}
+.section-lede + .demo-title { margin-top: 14px; }
+
+.demo-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+  font-family: var(--mono);
+  font-size: .7rem;
+}
+.kicker-tag {
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--accent);
+  border: 1px solid var(--accent-dk);
+  background: var(--accent-gl);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.demo-kicker a {
+  color: var(--text-3);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.demo-kicker a:hover { color: var(--accent); border-bottom-color: var(--accent-dk); }
+
+.demo-intro { color: var(--text-2); }
+.demo-intro + .demo-intro { margin-top: 10px; }
+.demo-intro strong { color: var(--text); font-weight: 600; }
+
+/* Technical depth, tucked behind a click so the plain reading stays clean. */
+.demo-details {
+  margin-top: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  background: var(--bg-2);
+}
+.demo-details summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 14px;
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 9px;
+}
+.demo-details summary::-webkit-details-marker { display: none; }
+.demo-details summary::before {
+  content: '+';
+  color: var(--accent);
+  font-weight: 700;
+  width: 1ch;
+}
+.demo-details[open] summary::before { content: '−'; }
+.demo-details summary:hover { color: var(--text-2); }
+.demo-details p {
+  padding: 0 14px 13px 36px;
+  font-size: .86rem;
+  color: var(--text-3);
+  max-width: 70ch;
+}
+.demo-details code {
+  font-family: var(--mono); font-size: .85em;
+  color: var(--text-2); background: var(--surface);
+  padding: 1px 5px; border-radius: 4px;
+}
+
+/* the maths, kept as a quiet aside next to the plain label */
+.row-maths {
+  font-style: normal;
+  color: var(--text-3);
+  opacity: .6;
+  margin-left: 7px;
+}
+
+/* "close" / "far" under the end labels of the depth axis */
+.demo-axis span { display: inline-flex; flex-direction: column; line-height: 1.35; }
+.demo-axis em {
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  font-size: .92em;
+  color: var(--text-2);
+}
+.demo-axis span:last-child { text-align: right; }
+
+@media (max-width: 560px) {
+  .demo-title { margin-top: 44px; }
+  .stereo-row span { max-width: 62%; }
+  .row-maths { display: none; }
+}

@@ -109,9 +109,14 @@
     for (var j = 0; j < BINS; j++) {
       if (symbolFor(hist[j]) !== '-') active.push(((j / BINS) * DEPTH_MAX).toFixed(1) + ' m');
     }
-    readout.textContent = active.length
-      ? 'Motion at ' + active.join(' and ') + '  ·  ' + counts['+'] + ' strong, ' + counts.x + ' micro'
-      : 'No motion — the subject is stationary.';
+    if (!active.length) {
+      readout.textContent = 'Nothing is moving right now.';
+    } else if (active.length === 1) {
+      readout.textContent = 'Movement ' + active[0] + ' from the camera.';
+    } else {
+      readout.textContent = 'Movement at two distances — ' + active.join(' and ') +
+                            ' from the camera.';
+    }
   }
 
   function drawScene() {
@@ -147,11 +152,11 @@
     // Labels.
     ctx.fillStyle = '#8b949e';
     ctx.font = '11px ui-monospace, monospace';
-    ctx.fillText('wall ' + WALL_M.toFixed(1) + ' m', 10, 18);
+    ctx.fillText('wall — ' + WALL_M.toFixed(1) + ' m away', 10, 18);
     ctx.fillStyle = '#5ee6c0';
-    ctx.fillText('subject ' + state.depth.toFixed(1) + ' m', 10, 34);
+    ctx.fillText('person — ' + state.depth.toFixed(1) + ' m away', 10, 34);
     ctx.fillStyle = 'rgba(255, 176, 92, 0.85)';
-    ctx.fillText('vacated → reads as wall', 10, h - 12);
+    ctx.fillText('the space they just left', 10, h - 12);
   }
 
   function step() {
@@ -443,7 +448,7 @@
     ctx.beginPath(); ctx.arc(s.px, s.py, 9, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = '#8b949e';
     ctx.font = '10px ui-monospace, monospace';
-    ctx.fillText('subject', s.px + 13, s.py + 3);
+    ctx.fillText('person', s.px + 13, s.py + 3);
 
     // On touch the page owns vertical gestures, so say that tapping works.
     if (!hasHover) {
@@ -451,12 +456,17 @@
       ctx.fillStyle = 'rgba(139,148,158,0.75)';
       ctx.font = '10px ui-monospace, monospace';
       ctx.textAlign = 'right';
-      ctx.fillText('tap to move the subject', view.width - 10, 16);
+      ctx.fillText('tap to move the person', view.width - 10, 16);
       ctx.textAlign = 'left';
     }
   }
 
-  function fmt(p) { return '(' + p.x.toFixed(3) + ', ' + p.z.toFixed(3) + ') m'; }
+  function fmt(p) { return '(' + p.x.toFixed(2) + ', ' + p.z.toFixed(2) + ') m'; }
+
+  /* Centimetres read more naturally than "0.060 m" for anything under a metre. */
+  function human(m) {
+    return m < 1 ? Math.round(m * 100) + ' cm' : m.toFixed(2) + ' m';
+  }
 
   function render() {
     var r = compute();
@@ -467,16 +477,17 @@
 
     if (!r.v1 || !r.v2) {
       dEl.textContent = '—';
-      verdictEl.textContent = 'Only one camera can see the subject — nothing to match.';
+      verdictEl.textContent = 'Only one camera can see this person — there is nothing to compare.';
       verdictEl.className = 'stereo-verdict warn';
       return;
     }
 
-    dEl.textContent = r.dist.toFixed(3) + ' m';
+    dEl.textContent = human(r.dist);
     var ok = r.dist < MATCH_THRESHOLD;
     verdictEl.textContent = ok
-      ? 'MATCH — ' + r.dist.toFixed(3) + ' m < 0.100 m threshold. One person, not two.'
-      : 'NO MATCH — ' + r.dist.toFixed(3) + ' m ≥ 0.100 m. Counted as two separate people.';
+      ? 'SAME PERSON — the two cameras agree to within ' + human(r.dist) + '. Counted once.'
+      : 'COUNTED TWICE — the cameras disagree by ' + human(r.dist) +
+        ', so this one person is recorded as two.';
     verdictEl.className = 'stereo-verdict ' + (ok ? 'ok' : 'bad');
   }
 
