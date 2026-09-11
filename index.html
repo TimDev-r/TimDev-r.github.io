@@ -33,6 +33,7 @@
     <nav class="nav-links" aria-label="Sections">
       <a href="#work">Work</a>
       <a href="#projects">Projects</a>
+      <a href="#demo">Demo</a>
       <a href="#skills">Skills</a>
       <a href="#education">Education</a>
       <a href="#contact" class="nav-cta">Contact</a>
@@ -186,10 +187,52 @@
     </div>
   </section>
 
+  <!-- ───────────────────────── LIVE DEMO ───────────────────────── -->
+  <section class="section" id="demo">
+    <div class="wrap">
+      <h2 class="section-title reveal"><span class="num">03</span> Try it: motion signatures</h2>
+      <p class="section-lede reveal">
+        The same algorithm as <a href="https://github.com/TimDev-r/motion-groundtruth-tools">motion-groundtruth-tools</a>, running here in your browser.
+        It bins movement by <em>distance from the camera</em> into 128 characters, so a long recording becomes scannable text.
+        <strong>Drag the subject</strong>, or change its distance.
+      </p>
+
+      <div class="demo reveal" id="sig-demo">
+        <canvas class="demo-view" width="640" height="300" role="img"
+                aria-label="Simulated camera view: a subject moving across a wall"></canvas>
+
+        <div class="demo-controls">
+          <label for="demo-depth">Subject distance</label>
+          <input type="range" id="demo-depth" min="0.5" max="7.5" step="0.1" value="3.0">
+          <output id="demo-depth-val">3.0 m</output>
+          <button type="button" id="demo-play" aria-pressed="true">Pause</button>
+        </div>
+
+        <div class="demo-out">
+          <div class="demo-sig" aria-live="off"></div>
+          <div class="demo-axis"><span>0 m</span><span>2 m</span><span>4 m</span><span>6 m</span><span>8 m</span></div>
+          <p class="demo-readout"></p>
+        </div>
+
+        <ul class="demo-legend">
+          <li><span class="sig-none">-</span> nothing moved</li>
+          <li><span class="sig-micro">x</span> micro-motion</li>
+          <li><span class="sig-move">+</span> movement</li>
+        </ul>
+      </div>
+
+      <p class="more reveal">
+        Notice <strong>two</strong> bands light up. Depth is read from the current frame, so a moving subject marks
+        its own distance <em>and</em> the wall it just uncovered — a disocclusion trail. It's inherent to differencing
+        against a single depth map, and it's the first thing that confuses anyone reading a signature.
+      </p>
+    </div>
+  </section>
+
   <!-- ───────────────────────── SKILLS ───────────────────────── -->
   <section class="section" id="skills">
     <div class="wrap">
-      <h2 class="section-title reveal"><span class="num">03</span> Skills</h2>
+      <h2 class="section-title reveal"><span class="num">04</span> Skills</h2>
 
       <div class="skills">
         <div class="skill-group reveal">
@@ -223,7 +266,7 @@
   <!-- ───────────────────────── EDUCATION ───────────────────────── -->
   <section class="section" id="education">
     <div class="wrap">
-      <h2 class="section-title reveal"><span class="num">04</span> Education</h2>
+      <h2 class="section-title reveal"><span class="num">05</span> Education</h2>
 
       <ul class="edu">
         <li class="reveal">
@@ -249,7 +292,7 @@
   <!-- ───────────────────────── CONTACT ───────────────────────── -->
   <section class="section section-contact" id="contact">
     <div class="wrap">
-      <h2 class="section-title reveal"><span class="num">05</span> Get in touch</h2>
+      <h2 class="section-title reveal"><span class="num">06</span> Get in touch</h2>
       <p class="contact-lede reveal">
         Open to work in computer vision, applied ML, and AI engineering — in Linz, remote, or across the EU.
       </p>
@@ -271,5 +314,6 @@
 </footer>
 
 <script src="assets/main.js"></script>
+<script src="assets/demo.js"></script>
 </body>
 </html>

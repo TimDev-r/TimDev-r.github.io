@@ -459,3 +459,142 @@ a { color: inherit; }
   .reveal { opacity: 1; transform: none; transition: none; }
   .btn:hover, .card:hover { transform: none; }
 }
+
+/* ───────────── interactive motion-signature demo ───────────── */
+
+.demo {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+  padding: 16px;
+  margin-top: 34px;
+}
+
+.demo-view {
+  display: block;
+  width: 100%;
+  height: 300px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  cursor: grab;
+  touch-action: pan-y;   /* let the page scroll vertically; we take horizontal */
+}
+.demo-view:active { cursor: grabbing; }
+
+.demo-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0 6px;
+  font-family: var(--mono);
+  font-size: .76rem;
+  color: var(--text-3);
+}
+.demo-controls label { white-space: nowrap; }
+.demo-controls input[type="range"] {
+  flex: 1 1 180px;
+  min-width: 140px;
+  accent-color: var(--accent);
+  height: 22px;
+}
+.demo-controls output {
+  color: var(--accent);
+  min-width: 4.2em;
+}
+.demo-controls button {
+  font-family: var(--mono);
+  font-size: .74rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: border-color .2s var(--ease), color .2s var(--ease);
+}
+.demo-controls button:hover { border-color: var(--accent-dk); color: var(--accent); }
+
+.demo-out { margin-top: 12px; }
+
+/* 128 equal columns, so the strip always spans exactly the container width
+   and stays aligned with the depth axis underneath it — no scrolling, no
+   reflow as the signature changes. */
+.demo-sig {
+  display: grid;
+  grid-template-columns: repeat(128, 1fr);
+  align-items: stretch;
+  gap: 1px;
+  font-family: var(--mono);
+  font-size: clamp(.4rem, 1.05vw, .74rem);
+  line-height: 1.4;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 12px 10px;
+  min-height: 44px;
+}
+.demo-sig span {
+  text-align: center;
+  overflow: hidden;
+  border-radius: 1px;
+}
+
+/* Too narrow for glyphs: drop the characters and read it as a barcode. */
+@media (max-width: 680px) {
+  .demo-sig {
+    gap: 1px;
+    padding: 10px 8px;
+  }
+  .demo-sig span {
+    font-size: 0;
+    min-height: 30px;
+    background: currentColor;
+    opacity: .85;
+  }
+}
+.sig-none  { color: #3f4c5c; }
+.sig-micro { color: #ffb05c; }
+.sig-move  { color: var(--accent); font-weight: 700; }
+
+.demo-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: .62rem;
+  color: var(--text-3);
+  padding: 6px 10px 0;
+}
+
+.demo-readout {
+  font-family: var(--mono);
+  font-size: .74rem;
+  color: var(--text-2);
+  margin-top: 10px;
+  min-height: 1.4em;
+}
+
+.demo-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 14px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line-soft);
+  font-family: var(--mono);
+  font-size: .7rem;
+  color: var(--text-3);
+}
+.demo-legend span {
+  font-weight: 700;
+  margin-right: 6px;
+  display: inline-block;
+  width: 1ch;
+}
+
+@media (max-width: 560px) {
+  .demo-view { height: 220px; }
+  .demo { padding: 12px; }
+}
