@@ -715,10 +715,7 @@ a { color: inherit; }
   }
   .stereo-row span { max-width: 100%; }
   .stereo-row code { padding-left: 0; }
-  .stereo-key li { align-items: flex-start; }
-  .stereo-key .k-dash,
-  .stereo-key .k-hollow,
-  .stereo-key .k-ring { margin-top: 4px; }
+  .stereo-key { gap: 10px 18px; }
 
   /* Narrow screens: lay each control out as label | slider | value on one
      row, instead of letting the value wrap onto a line of its own. */
@@ -994,7 +991,15 @@ a { color: inherit; }
   font-size: .68rem;
   color: var(--text-3);
 }
-.stereo-key li { display: inline-flex; align-items: center; gap: 7px; }
+/* Block, not flex: the "(Before only)" <em> became its own flex column and
+   the rest of the sentence wrapped beside it. Inline swatches keep the whole
+   item as one text flow that wraps normally. */
+.stereo-key li { display: block; }
+.stereo-key li > span:first-child {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 7px;
+}
 
 .k-dot, .k-ring {
   width: 11px; height: 11px;
@@ -1081,3 +1086,67 @@ a { color: inherit; }
     rgba(94,230,192,.25), rgba(94,230,192,1));
 }
 .demo-legend li { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ═══════════════════════════════════════════════════════════
+   Touch ergonomics.
+
+   Keyed on (hover: none) rather than a width, because this is about the
+   input device, not the screen size — a tablet needs the same treatment.
+   Targets below ~44px are hard to hit reliably with a thumb.
+   ═══════════════════════════════════════════════════════════ */
+
+@media (hover: none) {
+
+  /* Sliders are the main interaction in both demos and were 22px tall.
+     Keeping the native appearance preserves the filled track that
+     accent-color draws; the extra height just enlarges the hit area. */
+  .demo-controls input[type="range"] {
+    height: 44px;
+  }
+
+  .demo-controls button {
+    min-height: 44px;
+    padding-inline: 20px;
+  }
+
+  /* Link rows: GitHub / LinkedIn / Résumé / Email are primary calls to
+     action and sat at 20px with tight spacing. */
+  /* Keep the original 26px separation: the negative margins cancel the
+     padding, so the gap has to carry the full visual spacing itself. */
+  .hero-links { gap: 2px 26px; }
+  .hero-links a {
+    display: inline-block;
+    min-height: 44px;
+    line-height: 44px;
+    padding-inline: 8px;
+    margin-inline: -8px;
+  }
+
+  .nav-cta { min-height: 44px; display: inline-flex; align-items: center; }
+  .brand { min-height: 44px; }
+
+  .demo-details summary { min-height: 44px; }
+
+  .seg-btn { min-height: 52px; }
+
+  /* Project cards are already large, but make the whole card comfortably
+     tappable rather than relying on the title line. */
+  .card { min-height: 132px; }
+
+  /* The ground-truth caret label was 8.8px — under the legibility floor. */
+  .truth-mark { font-size: .64rem; }
+
+  /* Repo links beside the demo headings, and the contact address. */
+  .demo-kicker a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 6px;
+    margin-inline: -6px;
+  }
+  .mailto {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
