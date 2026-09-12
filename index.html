@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 
-<link rel="stylesheet" href="assets/style.css?v=20260912110353">
+<link rel="stylesheet" href="assets/style.css?v=20260912135825">
 </head>
 <body>
 
@@ -86,12 +86,13 @@
             <h3>AI Game Engineer</h3>
             <p class="job-org"><a class="org-link" href="https://www.roam.lol/">Roam.lol</a> <span class="sep">·</span> San Francisco, USA <span class="sep">·</span> Remote</p>
             <ul class="bullets">
-              <li>Shipped <strong>30+ mobile-first 3D web games</strong> (Three.js + Rapier), using Claude Code and MCP servers for scaffolding, asset generation, preview and publishing.</li>
-              <li>Deployed subagents and parallel workflows, browser-automation testing, and a ~90-entry agent memory playbook so a solved bug stays solved.</li>
-              <li>Built a reusable Claude Skill packaged for the team, a 35-prompt game-spec library, and stdio MCP scripts that unblocked a broken publish path.</li>
-              <li>Verified AI-written code by running generative asset pipelines (text-to-3D GLB, PBR material, audio) through generator/critic review loops.</li>
+              <li>Shipped <strong>30+ mobile-first 3D web games</strong> (Three.js + Rapier) end to end — scaffolding, generated assets, preview and publishing — driven through Claude Code and custom MCP tooling.</li>
+              <li>Deployed subagents, parallel workflows and browser-automation testing, and maintain a <strong>163-entry agent memory playbook</strong> so a solved bug stays solved; packaged a reusable Claude Skill and a 35-prompt spec library for the team.</li>
+              <li>Verified AI-written code rather than trusting it — headless simulation as the acceptance test (bot ladders over <strong>5,000 games per tier</strong>, monotonic improvement as the pass condition), plus generator/critic review loops over text-to-3D, PBR material and audio pipelines.</li>
+              <li>Built real-time systems under those constraints: host-authoritative multiplayer for 60 contact-heavy physics bodies, ordered-lockstep co-op behind a single action seam, and active-ragdoll character control on Rapier.</li>
+              <li>Review and repair other engineers' shipped games — root-cause diagnosis from the minified production bundle when source access is closed, holding a product bar on art and content volume, not just correctness.</li>
             </ul>
-            <p class="tags"><span>Three.js</span><span>Rapier</span><span>WebGL</span><span>Node.js</span><span>MCP</span><span>Web Workers</span></p>
+            <p class="tags"><span>Three.js</span><span>Rapier</span><span>WebGL</span><span>Node.js</span><span>MCP</span><span>Multiplayer</span><span>Simulation</span></p>
           </div>
         </li>
 
@@ -456,7 +457,7 @@
   </div>
 </footer>
 
-<script src="assets/main.js?v=20260912110353"></script>
-<script src="assets/demo.js?v=20260912110353"></script>
+<script src="assets/main.js?v=20260912135825"></script>
+<script src="assets/demo.js?v=20260912135825"></script>
 </body>
 </html>
