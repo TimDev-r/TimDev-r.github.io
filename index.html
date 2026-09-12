@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 
-<link rel="stylesheet" href="assets/style.css?v=20260912021049">
+<link rel="stylesheet" href="assets/style.css?v=20260912021541">
 </head>
 <body>
 
@@ -242,6 +242,7 @@
 
         <div class="demo-out">
           <div class="demo-sig" aria-live="off"></div>
+          <div class="demo-truth"><span class="truth-mark" id="demo-truth">person is here</span></div>
           <div class="demo-axis">
             <span>0 m<em>close</em></span><span>2 m</span><span>4 m</span><span>6 m</span><span>8 m<em>far</em></span>
           </div>
@@ -249,17 +250,22 @@
         </div>
 
         <ul class="demo-legend">
-          <li><span class="sig-none">-</span> nothing moved at this distance</li>
-          <li><span class="sig-micro">x</span> slight movement</li>
-          <li><span class="sig-move">+</span> someone moving</li>
+          <li><span class="sig-none">-</span> nothing changed at this distance</li>
+          <li><span class="sig-micro">x</span> a little changed</li>
+          <li><span class="sig-move">+</span> a lot changed</li>
+          <li><span class="k-fade"></span> brighter&nbsp;= more of the picture changed at that distance</li>
         </ul>
       </div>
 
       <p class="demo-note reveal">
-        One person lights up a whole <strong>span</strong> of distances, not a single mark. Stepping aside uncovers
-        what was behind them — floor stretching away, then the wall — and the camera counts all of it as movement.
-        The dense end of the span is the person; the thin tail is the room they stopped hiding.
-        Expecting that is the difference between trusting the data and chasing a phantom bug.
+        One person lights up a whole <strong>span</strong> of distances, not a single mark — here, everything from
+        about 3 m out to the wall at 6 m. Only the near end is the person. The rest is the floor and wall they
+        stopped hiding, which changed just as much as they did.
+        <br><br>
+        The marker underneath shows where the person really is, and that is the honest limitation:
+        <strong>the strip cannot tell you which end is a person.</strong> It reports that pixels at these
+        distances changed, nothing more. Reading a bright mark at 6 m as "somebody at 6 m" is the mistake this
+        makes easy — and knowing it is the difference between trusting the data and chasing a phantom.
       </p>
       <details class="demo-details reveal">
         <summary>The technical version</summary>
@@ -450,7 +456,7 @@
   </div>
 </footer>
 
-<script src="assets/main.js?v=20260912021049"></script>
-<script src="assets/demo.js?v=20260912021049"></script>
+<script src="assets/main.js?v=20260912021541"></script>
+<script src="assets/demo.js?v=20260912021541"></script>
 </body>
 </html>

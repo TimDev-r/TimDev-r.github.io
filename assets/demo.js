@@ -33,6 +33,7 @@
   var depthInput = root.querySelector('#demo-depth');
   var depthOut = root.querySelector('#demo-depth-val');
   var playBtn = root.querySelector('#demo-play');
+  var truthEl = root.querySelector('#demo-truth');
   var readout = root.querySelector('.demo-readout');
 
   // Visual only: the last few positions, drawn as fading echoes. The
@@ -141,13 +142,30 @@
     var frag = document.createDocumentFragment();
     var counts = { '-': 0, x: 0, '+': 0 };
 
+    /* The symbols are exactly what the algorithm emits — with absolute
+       thresholds, a person and the background they uncovered both clear the
+       bar and both read '+'. But the underlying counts differ by an order of
+       magnitude, so render that as weight. Nothing here changes the
+       signature; it just stops a thin background bin looking as substantial
+       as the person. */
+    var peak = 0;
+    for (var k = 0; k < BINS; k++) if (hist[k] > peak) peak = hist[k];
+
     for (var i = 0; i < BINS; i++) {
       var sym = symbolFor(hist[i]);
       counts[sym]++;
       var span = document.createElement('span');
       span.className = 'sig-' + (sym === '-' ? 'none' : sym === 'x' ? 'micro' : 'move');
       span.textContent = sym;
-      span.title = ((i / BINS) * DEPTH_MAX).toFixed(2) + ' m';
+      if (sym !== '-' && peak > 0) {
+        var share = hist[i] / peak;
+        span.style.opacity = (0.3 + 0.7 * Math.sqrt(share)).toFixed(3);
+        span.style.setProperty('--w', share.toFixed(3));
+      } else {
+        span.style.opacity = '';
+      }
+      span.title = ((i / BINS) * DEPTH_MAX).toFixed(2) + ' m — ' +
+                   (peak > 0 ? Math.round(hist[i] / peak * 100) : 0) + '% of the strongest bin';
       frag.appendChild(span);
     }
     sigEl.textContent = '';
@@ -180,6 +198,15 @@
 
     var metres = function (bin) { return (bin / BINS) * DEPTH_MAX; };
     var runs = bands();
+
+    // Ground truth, positioned against the same 0-8 m scale as the strip.
+    if (truthEl) {
+      var pct = Math.max(0, Math.min(1, state.depth / DEPTH_MAX)) * 100;
+      truthEl.style.left = pct.toFixed(2) + '%';
+      truthEl.classList.toggle('at-start', pct < 10);
+      truthEl.classList.toggle('at-end', pct > 90);
+      truthEl.textContent = 'person is here — ' + state.depth.toFixed(1) + ' m';
+    }
 
     if (mode === 'plain') {
       sigEl.classList.add('is-plain');

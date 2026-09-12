@@ -1025,3 +1025,59 @@ a { color: inherit; }
 }
 .stereo-key li { max-width: 100%; }
 .stereo-key em { font-style: normal; color: var(--text-2); opacity: .75; }
+
+/* ───────────── ground-truth marker under the signature ───────────── */
+
+/* Deliberately OUTSIDE the strip: the signature is what the algorithm
+   produces, this is what we happen to know. Keeping them visually separate
+   is the point — the strip genuinely cannot tell person from background. */
+.demo-truth {
+  position: relative;
+  height: 19px;
+  margin: 3px 10px 0;
+}
+.truth-mark {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .04em;
+  color: var(--text);
+  padding-top: 7px;
+  transition: left .18s var(--ease);
+}
+.truth-mark::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid var(--text);
+}
+/* Near the ends, pull the label inside so it cannot overhang the panel. */
+.truth-mark.at-start { transform: translateX(0); }
+.truth-mark.at-start::before { left: 6px; }
+.truth-mark.at-end { transform: translateX(-100%); }
+.truth-mark.at-end::before { left: calc(100% - 6px); }
+
+/* Meaningless without bins. */
+.demo-out.is-plain .demo-truth { visibility: hidden; }
+
+@media (max-width: 560px) {
+  .truth-mark { font-size: .55rem; }
+}
+
+/* legend swatch for the intensity ramp */
+.k-fade {
+  width: 34px; height: 9px;
+  border-radius: 2px;
+  flex: none;
+  background: linear-gradient(90deg,
+    rgba(94,230,192,.25), rgba(94,230,192,1));
+}
+.demo-legend li { display: inline-flex; align-items: center; gap: 7px; }
