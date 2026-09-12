@@ -706,6 +706,20 @@ a { color: inherit; }
   .stereo-view { height: 260px; }
   .stereo-row { font-size: .68rem; }
 
+  /* Side-by-side squeezes the label into a three-line column. Stack instead. */
+  .stereo-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 0;
+  }
+  .stereo-row span { max-width: 100%; }
+  .stereo-row code { padding-left: 0; }
+  .stereo-key li { align-items: flex-start; }
+  .stereo-key .k-dash,
+  .stereo-key .k-hollow,
+  .stereo-key .k-ring { margin-top: 4px; }
+
   /* Narrow screens: lay each control out as label | slider | value on one
      row, instead of letting the value wrap onto a line of its own. */
   .demo-controls {
@@ -993,3 +1007,21 @@ a { color: inherit; }
   background: none;
   border: 1.5px dashed rgba(231,237,244,.8);
 }
+
+/* key: a dashed sightline, and the hollow "conclusion" marker */
+.k-dash {
+  width: 16px; height: 0;
+  border-top: 2px dashed currentColor;
+  flex: none;
+  border-radius: 0;
+}
+.k-dash.k-c1 { color: var(--accent); background: none; box-shadow: none; }
+.k-dash.k-c2 { color: #ffb05c; background: none; box-shadow: none; }
+.k-hollow {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px dashed #ffb05c;
+  flex: none;
+}
+.stereo-key li { max-width: 100%; }
+.stereo-key em { font-style: normal; color: var(--text-2); opacity: .75; }

@@ -721,75 +721,82 @@
     drawCamera(r.cam2X, r.v2);
     drawCameraLabels(r.cam1X, r.cam2X, r.v1, r.v2);
 
-    // Two different things are drawn here, and keeping them apart is the
-    // whole point:
-    //   1. the SIGHTLINES — where each camera physically sees the person.
-    //      Both are correct; both point at the same spot.
-    //   2. the READINGS — where each camera's measurement lands once the
-    //      matcher treats both as if they shared one coordinate frame.
-    //      Without calibration, camera 2's lands a baseline away from
-    //      camera 1's, which is the disagreement the number reports.
-    var personPt = toPx(state.sx, state.sz);
+    /* Three things, and keeping them apart is the whole demo:
 
-    function sightline(camX, colour, active) {
+         SIGHTLINES   where each camera physically sees the person. Both are
+                      correct and both point at the same spot.
+         MEASUREMENT  each camera's answer is an OFFSET FROM ITSELF, drawn as
+                      an arrow starting at that camera.
+         THE MISTAKE  the matcher compares those two offsets as if they came
+                      from the same origin. So camera 2's arrow is replayed
+                      starting at camera 1 — same numbers, wrong starting
+                      point — and lands somewhere nobody is standing.
+
+       Drawing the mistake as a REPLAYED ARROW rather than a lone dot is what
+       stops it reading as a second person. */
+    var personPt = toPx(state.sx, state.sz);
+    var cam1Pt = toPx(r.cam1X, 0.12);
+    var cam2Pt = toPx(r.cam2X, 0.12);
+
+    function sightline(from, colour, active) {
       if (!active) return;
-      var a = toPx(camX, 0.12);
       ctx.save();
       ctx.strokeStyle = colour;
-      ctx.lineWidth = 1.3;
+      ctx.lineWidth = 1.6;
       ctx.setLineDash([5, 4]);
       ctx.lineDashOffset = -dashPhase;
       ctx.beginPath();
-      ctx.moveTo(a.px, a.py);
+      ctx.moveTo(from.px, from.py);
       ctx.lineTo(personPt.px, personPt.py);
       ctx.stroke();
       ctx.restore();
     }
-    sightline(r.cam1X, 'rgba(94,230,192,0.65)', r.v1);
-    sightline(r.cam2X, 'rgba(255,176,92,0.65)', r.v2);
+    sightline(cam1Pt, 'rgba(94,230,192,0.8)', r.v1);
+    sightline(cam2Pt, 'rgba(255,176,92,0.8)', r.v2);
 
     if (r.v1 && r.v2) {
-      var e1 = toPx(r.p1.x, r.p1.z);          // camera 1's reading
-      var e2 = toPx(r.q2.x, r.q2.z);          // camera 2's, as the matcher reads it
       var ok = r.dist < MATCH_THRESHOLD;
-      var col = ok ? '#5ee6c0' : '#ff6b6b';
+      var ghost = toPx(r.q2.x, r.q2.z);   // camera 2's offset, replayed from camera 1
 
+      // The replayed arrow, only when it actually goes wrong.
       if (!ok) {
         ctx.save();
-        ctx.strokeStyle = col;
+        ctx.strokeStyle = 'rgba(255,176,92,0.55)';
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(cam1Pt.px, cam1Pt.py);
+        ctx.lineTo(ghost.px, ghost.py);
+        ctx.stroke();
+        ctx.restore();
+
+        // Hollow endpoint: a conclusion, not an object.
+        ctx.save();
+        ctx.strokeStyle = '#ffb05c';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([3, 2]);
+        ctx.beginPath(); ctx.arc(ghost.px, ghost.py, 6, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = 'rgba(255,176,92,0.95)';
+        ctx.font = '9px ui-monospace, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('nobody is here', ghost.px, ghost.py - 12);
+        ctx.textAlign = 'left';
+
+        // The distance the matcher actually measures.
+        ctx.save();
+        ctx.strokeStyle = '#ff6b6b';
         ctx.lineWidth = 2.2;
-        ctx.shadowColor = col;
+        ctx.shadowColor = '#ff6b6b';
         ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.moveTo(e1.px, e1.py); ctx.lineTo(e2.px, e2.py); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(personPt.px, personPt.py);
+        ctx.lineTo(ghost.px, ghost.py);
+        ctx.stroke();
         ctx.restore();
-      }
 
-      function readingDot(pt, colour, r) {
-        ctx.save();
-        ctx.shadowColor = colour;
-        ctx.shadowBlur = 9;
-        ctx.fillStyle = colour;
-        ctx.beginPath(); ctx.arc(pt.px, pt.py, r || 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
-      }
-
-      // When the two readings agree they land on the same pixel, and drawing
-      // both plus the person turns into an unreadable blob. Agreement is one
-      // marker; disagreement is two.
-      var sep = Math.hypot(e1.px - e2.px, e1.py - e2.py);
-      if (sep < 9) {
-        readingDot(e1, '#5ee6c0', 5);
-        ctx.strokeStyle = 'rgba(94,230,192,0.55)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(e1.px, e1.py, 9, 0, Math.PI * 2); ctx.stroke();
-      } else {
-        readingDot(e1, '#5ee6c0');
-        readingDot(e2, '#ffb05c');
-      }
-
-      if (!ok) {
-        // Below the span: the person ring and its label occupy the space above.
-        var mx = (e1.px + e2.px) / 2, my = (e1.py + e2.py) / 2;
+        var mx = (personPt.px + ghost.px) / 2, my = (personPt.py + ghost.py) / 2;
         var label = human(r.dist) + ' apart';
         ctx.font = '10px ui-monospace, monospace';
         var tw = ctx.measureText(label).width;
@@ -800,10 +807,18 @@
         ctx.lineWidth = 1;
         roundRect(ctx, mx - tw / 2 - 6, my + 9, tw + 12, 16, 4);
         ctx.stroke();
-        ctx.fillStyle = col;
+        ctx.fillStyle = '#ff6b6b';
         ctx.textAlign = 'center';
         ctx.fillText(label, mx, my + 20);
         ctx.textAlign = 'left';
+      } else {
+        // Agreement: both answers land on the person. One marker, not two.
+        ctx.save();
+        ctx.shadowColor = '#5ee6c0';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#5ee6c0';
+        ctx.beginPath(); ctx.arc(personPt.px, personPt.py, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
     }
 
@@ -835,7 +850,15 @@
     }
   }
 
-  function fmt(p) { return '(' + p.x.toFixed(2) + ', ' + p.z.toFixed(2) + ') m'; }
+  /* Each camera reports an offset FROM ITSELF. Saying "0.50 m left" and
+     "0.50 m right" makes it obvious these are two descriptions of one place,
+     which a coordinate pair hides. */
+  function describe(p) {
+    var side = Math.abs(p.x) < 0.02
+      ? 'straight ahead'
+      : Math.abs(p.x).toFixed(2) + ' m to its ' + (p.x >= 0 ? 'right' : 'left');
+    return side + ', ' + p.z.toFixed(2) + ' m away';
+  }
 
   /* Centimetres read more naturally than "0.060 m" for anything under a metre. */
   function human(m) {
@@ -846,8 +869,8 @@
     var r = compute();
     draw(r);
 
-    p1El.textContent = r.v1 ? fmt(r.p1) : 'not in view';
-    p2El.textContent = r.v2 ? fmt(state.calib ? r.q2 : r.p2) : 'not in view';
+    p1El.textContent = r.v1 ? describe(r.p1) : 'not in view';
+    p2El.textContent = r.v2 ? describe(state.calib ? r.q2 : r.p2) : 'not in view';
 
     if (!r.v1 && !r.v2) {
       dEl.textContent = '—';

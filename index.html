@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 
-<link rel="stylesheet" href="assets/style.css?v=20260912015404">
+<link rel="stylesheet" href="assets/style.css?v=20260912020411">
 </head>
 <body>
 
@@ -285,8 +285,9 @@
       <p class="demo-intro reveal">
         <strong>The idea:</strong> don't compare what the cameras <em>see</em> — compare <em>where they think the
         person is standing</em>. Two sightings of the same spot in the room must be the same person.
-        <strong>Flip the switch</strong> to see what happens when the cameras aren't lined up first, and
-        <strong>tap or drag</strong> to move the person around.
+        The catch: each camera measures <em>from itself</em>, so the same person gets described two different
+        ways — and something has to reconcile them.
+        <strong>Flip the switch</strong>, and <strong>tap or drag</strong> to move the person around.
       </p>
 
       <div class="demo reveal" id="stereo-demo">
@@ -315,15 +316,17 @@
 
         <ul class="stereo-key">
           <li><span class="k-ring"></span> where the person actually is</li>
-          <li><span class="k-dot k-c1"></span> camera 1's answer</li>
-          <li><span class="k-dot k-c2"></span> camera 2's answer</li>
+          <li><span class="k-dash k-c1"></span> what camera 1 sees</li>
+          <li><span class="k-dash k-c2"></span> what camera 2 sees</li>
+          <li><span class="k-hollow"></span> <em>(Before only)</em> where camera 2's numbers land when nobody accounts for where it sits</li>
         </ul>
 
         <div class="stereo-out">
-          <div class="stereo-row"><span>Where camera 1 thinks they are</span><code id="st-p1">—</code></div>
-          <div class="stereo-row"><span>Where camera 2 thinks they are</span><code id="st-p2">—</code></div>
+          <div class="stereo-row"><span>Camera 1 reports</span><code id="st-p1">—</code></div>
+          <div class="stereo-row"><span>Camera 2 reports</span><code id="st-p2">—</code></div>
           <div class="stereo-row stereo-dist">
-            <span>How far apart those two answers are <em class="row-maths">‖p₁ − p₂‖</em></span>
+            <span>Compared as if both were measured from the same place
+              <em class="row-maths">‖p₁ − p₂‖</em></span>
             <code id="st-d">—</code>
           </div>
           <p class="stereo-verdict" id="st-verdict">—</p>
@@ -331,9 +334,12 @@
       </div>
 
       <p class="demo-note reveal">
-        Switch to <strong>Before</strong> and watch it break. Each camera measures from <em>itself</em>, so the
-        further apart they sit, the further apart their answers look — and the system decides one person is two.
-        Widening the gap between the cameras makes it worse; lining them up first fixes it at any distance.
+        Switch to <strong>Before</strong> and read the two reports. Camera 1 says the person is to its
+        <em>right</em>; camera 2 says the same person is to its <em>left</em>. Both are correct — they are
+        standing in different places. But the matcher compares those two descriptions without asking where
+        either camera was standing, which is like comparing "third door on the left" from opposite ends of a
+        corridor. The dotted arrow shows where camera 2's numbers land once you forget its position: an empty
+        spot on the floor. Nobody is there, and the system counts a second person anyway.
         <br><br>
         Lining the cameras up is the step that makes a multi-camera setup work, and it's the easiest one to
         underestimate. Skip it and nothing crashes — the system keeps running and the numbers still look
@@ -444,7 +450,7 @@
   </div>
 </footer>
 
-<script src="assets/main.js?v=20260912015404"></script>
-<script src="assets/demo.js?v=20260912015404"></script>
+<script src="assets/main.js?v=20260912020411"></script>
+<script src="assets/demo.js?v=20260912020411"></script>
 </body>
 </html>
