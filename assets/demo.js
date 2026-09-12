@@ -71,6 +71,7 @@
   var PERSON_H = 1.75;
   var PERSON_W = 0.52;
   var FOCAL = 0.9;         // in canvas-height units
+  var WALL_TOP_M = 2.8;    // ceiling height, where the back wall stops
 
   function aspect() { return view.width / Math.max(1, view.height); }
 
@@ -98,14 +99,23 @@
   }
 
   /* What the camera sees at screen row `v` when nothing is in the way.
-     The person stands in front of BOTH surfaces: their upper body against
-     the back wall, their legs against the floor. Treating every uncovered
-     pixel as "the wall" was wrong — the floor is nearer, and how near
-     depends on the row. */
+
+     Below the horizon that is the floor, receding; above it, the ceiling;
+     and wherever either would be further than the back wall, it is the wall.
+
+     The earlier version returned Infinity for everything at or above the
+     horizon, which discarded 9.5% of the changed pixels — the person's head
+     and shoulders sit above the horizon at EVERY distance (they are 1.75 m
+     against a 1.4 m camera), and the surface they uncover is the wall. That
+     under-weighted the wall bin by nearly half and flattened the signature
+     into one smear instead of two peaks. */
   function backgroundDepth(v) {
-    if (v <= HORIZON) return Infinity;             // above the horizon: no surface
-    var floorZ = (CAM_H * FOCAL) / (v - HORIZON);  // invert projY for up = 0
-    return floorZ < WALL_M ? floorZ : WALL_M;      // floor if nearer, else the wall
+    var d = v - HORIZON;
+    if (Math.abs(d) < 1e-6) return WALL_M;   // the horizon itself is the far wall
+    var surfaceZ = d > 0
+      ? (CAM_H * FOCAL) / d                        // floor, below the horizon
+      : ((WALL_TOP_M - CAM_H) * FOCAL) / -d;       // ceiling, above it
+    return surfaceZ < WALL_M ? surfaceZ : WALL_M;  // nearer surface, else the wall
   }
 
   /* The algorithm: which bins light up, and how strongly. */
@@ -302,8 +312,6 @@
      person steps sideways they uncover the wall behind them, and the wall is
      at a different distance from the camera than they are. Drawing it makes
      that readable instead of asserted. */
-  var WALL_TOP_M = 2.8;   // ceiling height
-
   function drawRoom() {
     var w = view.width, h = view.height;
     var wallBase = projY(WALL_M, 0) * h;        // where wall meets floor
