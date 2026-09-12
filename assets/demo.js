@@ -437,6 +437,13 @@
   function endDrag(e) {
     if (!state.dragging) return;
     state.dragging = false;
+    // Letting go means the person stopped. The next pair of frames is
+    // identical, so the baseline has to catch up — otherwise prevX keeps
+    // pointing at wherever the drag started and the demo reports movement
+    // forever while nothing moves.
+    state.prevX = state.x;
+    trail.length = 0;
+    step();
     try { view.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
   }
   view.addEventListener('pointerup', endDrag);
