@@ -200,7 +200,7 @@
     <div class="wrap">
       <h2 class="section-title reveal"><span class="num">03</span> Try the work yourself</h2>
       <p class="section-lede reveal">
-        Two real problems from my computer-vision work, running live in your browser. No background needed —
+        Three real problems from my work, running live in your browser. No background needed —
         each one explains itself as you play with it.
       </p>
 
@@ -369,6 +369,170 @@
           repository's README.
         </p>
       </details>
+
+      <h3 class="demo-title reveal">Telling this year&rsquo;s salary table from last year&rsquo;s</h3>
+      <p class="demo-kicker reveal">
+        <span class="kicker-tag">version-scoped retrieval</span>
+        <a href="https://github.com/TimDev-r/salary_RAG">salary_RAG</a>
+      </p>
+      <p class="demo-intro reveal">
+        <strong>The problem:</strong> Austria&rsquo;s IT collective agreement is renegotiated
+        every year, and the 2025 and 2026 documents are about 95% identical &mdash; same
+        structure, same wording, the salary table on the same page. Only the numbers move.
+        Ask for &ldquo;the ST1 minimum salary&rdquo; and a search built on meaning returns the
+        wrong year <em>confidently</em>, because by meaning the two paragraphs <em>are</em>
+        the same paragraph.
+      </p>
+      <p class="demo-intro reveal">
+        The fix is not a better model. Every passage carries the dates it is in force, and the
+        wrong year is removed from the running <strong>before</strong> anything is ranked, rather
+        than filtered out of the results afterwards &mdash; which is the same mechanism a company
+        search needs to keep one team from reading another&rsquo;s documents. It is worth 16
+        points of accuracy on the first result, and nothing at all after the third.
+      </p>
+
+      <div class="demo reveal" id="kv-demo">
+        <style>
+          #kv-demo .kv-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+            padding:0 4px 13px;border-bottom:1px solid var(--line-soft);margin-bottom:15px}
+          #kv-demo .kv-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);
+            box-shadow:0 0 0 4px var(--accent-gl)}
+          #kv-demo .kv-head b{font-size:13px;font-weight:600}
+          #kv-demo .kv-head span{color:var(--text-3);font-size:12px;font-family:var(--mono)}
+          #kv-demo .kv-head button{margin-left:auto;background:var(--surface-2);color:var(--text-2);
+            border:1px solid var(--line);border-radius:999px;padding:4px 11px;
+            font:inherit;font-size:12px;font-family:var(--mono);cursor:pointer}
+          #kv-demo .kv-head button:hover:not(:disabled){color:var(--accent);border-color:var(--accent-dk)}
+          #kv-demo .kv-head button:disabled{opacity:.45;cursor:default}
+          #kv-demo .kv-msgs{display:flex;flex-direction:column;gap:14px;min-height:330px}
+          #kv-demo .kv-row{display:flex;animation:kvin .3s var(--ease) both}
+          @keyframes kvin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+          #kv-demo .kv-row.me{justify-content:flex-end}
+          #kv-demo .kv-b{max-width:min(92%,560px);padding:11px 14px;border-radius:14px;
+            border:1px solid var(--line);background:var(--bg-2);white-space:pre-wrap;
+            word-wrap:break-word;font-size:14.5px;line-height:1.55}
+          #kv-demo .kv-row.me .kv-b{background:var(--surface-2);border-bottom-right-radius:4px}
+          #kv-demo .kv-row.bot .kv-b{border-bottom-left-radius:4px}
+          #kv-demo .kv-b.refused{border-left:3px solid var(--accent-dk)}
+          #kv-demo .kv-cites{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+          #kv-demo .kv-cite{font-family:var(--mono);font-size:11px;background:var(--accent-gl);
+            color:var(--accent);border:1px solid rgba(94,230,192,.22);border-radius:999px;
+            padding:3px 9px;animation:kvin .25s var(--ease) both}
+          #kv-demo .kv-meta{font-family:var(--mono);font-size:10.5px;color:var(--text-3);margin-top:8px}
+          #kv-demo .kv-dots i{display:inline-block;width:5px;height:5px;border-radius:50%;
+            background:var(--text-3);margin-right:4px;animation:kvb 1.2s infinite;font-style:normal}
+          #kv-demo .kv-dots i:nth-child(2){animation-delay:.15s}
+          #kv-demo .kv-dots i:nth-child(3){animation-delay:.3s}
+          @keyframes kvb{0%,60%,100%{opacity:.2}30%{opacity:1}}
+        </style>
+        <div class="kv-head">
+          <span class="kv-dot"></span><b>AT-KV Assistant</b>
+          <span>recorded replay &middot; real answers, citations and latencies</span>
+          <button type="button" id="kv-again">&#8635; replay</button>
+        </div>
+        <div class="kv-msgs" id="kv-msgs"></div>
+      </div>
+
+      <p class="demo-note reveal">
+        Watch the second question. It is the same sentence as the first &mdash; only the year in
+        force changed, and with it the figure, the source document and the page. Every answer
+        carries a reference you can check against the published PDF, which is the whole point:
+        a salary figure without a paragraph number is a rumour. The third question asks what to
+        <em>do</em> rather than what the documents <em>say</em>, and is refused &mdash; five out of
+        five advice questions refused, with none of the twenty-five factual ones refused by
+        mistake. <a href="atkv-demo.html">Full write-up and numbers &rarr;</a>
+      </p>
+
+      <script>
+      (function(){
+        var T=[
+          {me:1,t:"Wie hoch ist das Mindestgrundgehalt für ST1 Erfahrungsstufe?"},
+          {think:900,c:["IT-KV 2026 · § 15 · p26"],
+           m:"in force 2026-07-01 · retrieval 803 ms · total 7.6 s",
+           t:"Die Mindestgrundgehälter betragen ab 1.1.2026:\nST1 / Erfahrungsstufe: 4.476 EUR brutto pro Monat [IT-KV 2026, § 15]."},
+          {me:1,t:"Wie hoch ist das Mindestgrundgehalt für ST1 Erfahrungsstufe?"},
+          {think:700,c:["IT-KV 2025 · § 15 · p26","IT-KV 2025 · § 15 · p21"],
+           m:"in force 2025-07-01 · retrieval 556 ms · total 12.0 s",
+           t:"Die Mindestgrundgehälter betragen ab 1.1.2025:\nST1 / Erfahrungsstufe: 4.350 EUR brutto pro Monat [IT-KV 2025, § 15]."},
+          {me:1,t:"Soll ich meinen Arbeitgeber klagen?"},
+          {think:250,refused:1,
+           t:"Diese Frage betrifft eine persönliche Empfehlung oder Rechtsberatung. Dieses System gibt ausschließlich den Inhalt des Kollektivvertrags und der zitierten Gesetze wieder und beantwortet keine Fragen dazu, was Sie tun sollten. Für eine Einschätzung Ihres konkreten Falls wenden Sie sich bitte an die Arbeiterkammer, Ihre Gewerkschaft oder eine Rechtsanwältin bzw. einen Rechtsanwalt."}
+        ];
+        var box=document.getElementById('kv-msgs'), btn=document.getElementById('kv-again');
+        if(!box) return;
+        var calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function nap(ms){return new Promise(function(r){setTimeout(r,calm?Math.min(ms,120):ms)})}
+        function add(cls){var r=document.createElement('div');r.className='kv-row '+cls;
+          var b=document.createElement('div');b.className='kv-b';r.appendChild(b);box.appendChild(r);return b}
+        function put(el,txt,per){
+          if(calm){el.textContent=txt;return Promise.resolve()}
+          var i=0;return new Promise(function(done){
+            (function step(){ el.textContent=txt.slice(0,++i);
+              if(i>=txt.length) return done();
+              setTimeout(step, i%2?0:per); })();
+          });
+        }
+        var running=false;
+        async function play(){
+          if(running) return; running=true; box.innerHTML=''; btn.disabled=true;
+          for(var k=0;k<T.length;k++){ var s=T[k];
+            if(s.me){ await put(add('me'),s.t,13); await nap(430); continue }
+            var b=add('bot'); b.innerHTML='<span class="kv-dots"><i></i><i></i><i></i></span>';
+            await nap(s.think||600);
+            if(s.refused){ b.className='kv-b refused'; b.textContent='';
+              await put(b,s.t,4); await nap(800); continue }
+            b.innerHTML='';
+            var ans=document.createElement('div'); b.appendChild(ans);
+            var cs=document.createElement('div'); cs.className='kv-cites'; b.appendChild(cs);
+            for(var j=0;j<s.c.length;j++){
+              var el=document.createElement('span'); el.className='kv-cite'; el.textContent=s.c[j];
+              cs.appendChild(el); await nap(230);
+            }
+            var mt=document.createElement('div'); mt.className='kv-meta'; mt.textContent=s.m; b.appendChild(mt);
+            await nap(380); await put(ans,s.t,10); await nap(1050);
+          }
+          btn.disabled=false; running=false;
+        }
+        btn.addEventListener('click',play);
+        var card=document.getElementById('kv-demo');
+        if('IntersectionObserver' in window){
+          var io=new IntersectionObserver(function(es){
+            for(var i=0;i<es.length;i++) if(es[i].isIntersecting){ io.disconnect(); play(); return }
+          },{threshold:.2});
+          io.observe(card);
+        } else { play() }
+      })();
+      </script>
+      <details class="demo-details reveal">
+        <summary>The technical version</summary>
+        <p>
+          Each passage carries <code>valid_from</code> and <code>valid_to</code> as an interval, not a year,
+          so an unchanged paragraph is not duplicated once per edition. The filter is applied through a FAISS
+          <code>IDSelector</code>, which restricts the scan rather than masking results afterwards &mdash; the
+          distinction matters: on an adversarial case, post-filtering returned <strong>0 of 5</strong> requested
+          results while pre-filtering returned all four that existed. Post-filtering does not rank worse, it
+          silently returns nothing.
+        </p>
+        <p>
+          The salary table is the hard part. <code>extract_text()</code> flattens it to
+          <code>Einstiegsstufe 2 236 2 547 3 267 4061 5 301</code> &mdash; the thousands separator is a space,
+          so five values arrive as nine tokens, and the spacing is not even consistent within a row. One row is
+          ragged, so reading numbers in order shifts every value one column left. Lattice detection recovers the
+          real grid from the PDF's cell rectangles, and each cell is then rewritten as a sentence, which turns a
+          geometry problem into a text problem.
+        </p>
+        <p>
+          German compounds are split against a vocabulary drawn from the corpus itself, so a query for
+          <code>Gehalt</code> reaches <code>Mindestgrundgehalt</code>; without it plain BM25 scores that pair at
+          exactly zero. Worth +0.08 at rank 3. The largest single win, though, was a bug: the parser was
+          discarding the paragraph titles the source publishes &mdash; <code>§ 3 Normalarbeitszeit</code> against
+          <code>§ 4 Andere Verteilung der Normalarbeitszeit</code> &mdash; which is precisely what separates four
+          near-identical provisions that otherwise score within 0.007 of each other. Restoring one line of parser
+          moved retrieval@5 from 0.88 to 0.92 and made the cross-encoder reranker, at 1.4 s per query,
+          unnecessary.
+        </p>
+      </details>
+
     </div>
   </section>
 
